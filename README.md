@@ -1,32 +1,32 @@
 <div align="center">
    
-  <h1>baseline 🔬</h1>
+  <h1>assembly-seek 🔬</h1>
   
   **_long pipeline name_**
 
-  [![tests](https://github.com/OpenOmics/baseline/workflows/tests/badge.svg)](https://github.com/OpenOmics/baseline/actions/workflows/main.yaml) [![docs](https://github.com/OpenOmics/baseline/workflows/docs/badge.svg)](https://github.com/OpenOmics/baseline/actions/workflows/docs.yml) [![GitHub issues](https://img.shields.io/github/issues/OpenOmics/baseline?color=brightgreen)](https://github.com/OpenOmics/baseline/issues)  [![GitHub license](https://img.shields.io/github/license/OpenOmics/baseline)](https://github.com/OpenOmics/baseline/blob/main/LICENSE) 
+  [![tests](https://github.com/OpenOmics/assembly-seek/workflows/tests/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/main.yaml) [![docs](https://github.com/OpenOmics/assembly-seek/workflows/docs/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/docs.yml) [![GitHub issues](https://img.shields.io/github/issues/OpenOmics/assembly-seek?color=brightgreen)](https://github.com/OpenOmics/assembly-seek/issues)  [![GitHub license](https://img.shields.io/github/license/OpenOmics/assembly-seek)](https://github.com/OpenOmics/assembly-seek/blob/main/LICENSE) 
   
   <i>
-    This is the home of the pipeline, baseline. Its long-term goals: to accurately ...insert goal, to infer ..insert goal, and to boldly ..insert goal like no pipeline before!
+    This is the home of the pipeline, assembly-seek. Its long-term goals: to accurately ...insert goal, to infer ..insert goal, and to boldly ..insert goal like no pipeline before!
   </i>
 </div>
 
 ## Overview
-Welcome to baseline! Before getting started, we highly recommend reading through [baseline's documentation](https://openomics.github.io/baseline/).
+Welcome to assembly-seek! Before getting started, we highly recommend reading through [assembly-seek's documentation](https://openomics.github.io/assembly-seek/).
 
-The **`./baseline`** pipeline is composed several inter-related sub commands to setup and run the pipeline across different systems. Each of the available sub commands perform different functions: 
+The **`./assembly-seek`** pipeline is composed several inter-related sub commands to setup and run the pipeline across different systems. Each of the available sub commands perform different functions: 
 
- * [<code>baseline <b>run</b></code>](https://openomics.github.io/baseline/usage/run/): Run the baseline pipeline with your input files.
- * [<code>baseline <b>unlock</b></code>](https://openomics.github.io/baseline/usage/unlock/): Unlocks a previous runs output directory.
- * [<code>baseline <b>cache</b></code>](https://openomics.github.io/baseline/usage/cache/): Cache remote resources locally, coming soon!
+ * [<code>assembly-seek <b>run</b></code>](https://openomics.github.io/assembly-seek/usage/run/): Run the assembly-seek pipeline with your input files.
+ * [<code>assembly-seek <b>unlock</b></code>](https://openomics.github.io/assembly-seek/usage/unlock/): Unlocks a previous runs output directory.
+ * [<code>assembly-seek <b>cache</b></code>](https://openomics.github.io/assembly-seek/usage/cache/): Cache remote resources locally, coming soon!
 
-**baseline** is a comprehensive ...insert long description. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
+**assembly-seek** is a comprehensive ...insert long description. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
 
 The pipeline is compatible with data generated from Illumina short-read sequencing technologies. As input, it accepts a set of FastQ files and can be run locally on a compute instance or on-premise using a cluster. A user can define the method or mode of execution. The pipeline can submit jobs to a cluster using a job scheduler like SLURM (more coming soon!). A hybrid approach ensures the pipeline is accessible to all users.
 
-Before getting started, we highly recommend reading through the [usage](https://openomics.github.io/baseline/usage/run/) section of each available sub command.
+Before getting started, we highly recommend reading through the [usage](https://openomics.github.io/assembly-seek/usage/run/) section of each available sub command.
 
-For more information about issues or trouble-shooting a problem, please checkout our [FAQ](https://openomics.github.io/baseline/faq/questions/) prior to [opening an issue on Github](https://github.com/OpenOmics/baseline/issues).
+For more information about issues or trouble-shooting a problem, please checkout our [FAQ](https://openomics.github.io/assembly-seek/faq/questions/) prior to [opening an issue on Github](https://github.com/OpenOmics/assembly-seek/issues).
 
 ## Dependencies
 **Requires:** `singularity>=3.5`  `snakemake>=6.0`
@@ -37,18 +37,18 @@ At the current moment, the pipeline uses a mixture of enviroment modules and doc
 Please clone this repository to your local filesystem using the following command:
 ```bash
 # Clone Repository from Github
-git clone https://github.com/OpenOmics/baseline.git
+git clone https://github.com/OpenOmics/assembly-seek.git
 # Change your working directory
-cd baseline/
+cd assembly-seek/
 # Add dependencies to $PATH
 # Biowulf users should run
 module load snakemake singularity
 # Get usage information
-./baseline -h
+./assembly-seek -h
 ```
 
 ## Contribute 
-This site is a living document, created for and by members like you. baseline is maintained by the members of OpenOmics and is improved by continous feedback! We encourage you to contribute new content and make improvements to existing content via pull request to our [GitHub repository](https://github.com/OpenOmics/baseline).
+This site is a living document, created for and by members like you. assembly-seek is maintained by the members of OpenOmics and is improved by continous feedback! We encourage you to contribute new content and make improvements to existing content via pull request to our [GitHub repository](https://github.com/OpenOmics/assembly-seek).
 
 ## References
 <sup>**1.**  Kurtzer GM, Sochat V, Bauer MW (2017). Singularity: Scientific containers for mobility of compute. PLoS ONE 12(5): e0177459.</sup>  
