@@ -268,6 +268,14 @@ def parsed_arguments(name, description):
                                 provided working directory has not been initialized,
                                 it will be created automatically.
                                   Example: --output /data/$USER/output
+          --genome-size
+                                Total DNA sequence of the organism in Mb or Gb.
+                                  Example: --genome-size "23.5m"
+          --coverage             
+                                An approximate prior for expected aligned coverage used
+                                by flye. A subset of the longest reads for initial 
+                                disjointig assembly.
+                                  Example : --coverage 200
 
         {3}{4}Analysis options:{5}
           ...coming soon!
@@ -403,9 +411,22 @@ def parsed_arguments(name, description):
         help = argparse.SUPPRESS
     )
 
-    # Optional Arguments
-    # Add custom help message
     subparser_run.add_argument(
+        '--genome-size',
+        type = str,
+        required = True,
+        help = argparse.SUPPRESS
+    ) 
+
+    subparser_run.add_argument(
+        '--coverage',
+        type = int,
+        required = True,
+        help = argparse.SUPPRESS
+    )
+
+    # Optional Arguments
+
         '-h', '--help', 
         action='help', 
         help=argparse.SUPPRESS
