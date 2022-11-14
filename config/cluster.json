@@ -1,8 +1,71 @@
 {
-    "__default__": {
-        "threads": "4",
-        "mem": "8g",
-        "partition": "norm",
-        "time": "0-04:00:00"
-    }
+      "__default__": {
+              "mem": "50g",
+              "time": "24:00:00",
+              "partition": "norm,largemem",
+              "threads": "32",
+              "gres": "lscratch:500"
+      },
+      "BAM_to_Fasta": {
+              "mem": "12g",
+              "time": "24:00:00",
+              "partition": "norm",
+              "threads": "8",
+      },
+      "wtdbg2_assembly": {
+              "mem": "50g",
+              "time": "24:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
+      "flye_assembly": {
+              "mem": "999g",
+              "time": "24:00:00",
+              "partition": "largemem",
+              "threads": "100",
+              "gres": "lscratch:500",
+      },
+      "raven_assembly": {
+              "mem": "150g",
+              "time": "24:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
+      "canu_assembly": {
+              "mem": "100g",
+              "time": "10-00:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
+      "minipolish_assembly": {
+              "mem": "250g",
+              "time": "10-00:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
+      "minimap2_overlaps": {
+              "mem": "150g",
+              "time": "4-00:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
+      "stats_quast": {
+              "mem": "100g",
+              "time": "5-00:00:00",
+              "partition": "norm,largemem",
+              "threads": "32",
+      },
+      "stats_busco": {
+              "mem": "100g",
+              "time": "5-00:00:00",
+              "partition": "norm,largemem",
+              "threads": "32",
+              "gres": "lscratch:500",
+      },
 }
+
