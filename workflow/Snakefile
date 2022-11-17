@@ -320,17 +320,17 @@ rule stats_busco:
         odb10_path = odb10_refs_path
         link = busco_link
         Lineage_name = Lineage_name
+        Lineage_path = Lineage_path
     threads: 32
     shell:
         """
-        cd {params.odb10_path}
-        wget {params.link}
-        tar -xf {params.Lineage_name}
+        if [ ! -d "{params.Lineage_path}" ]; then cd {params.odb10_path}; 
+        wget {params.link}; tar -xf {params.Lineage_name}; fi
         module load busco/4.0.2
         mkdir -p {params.dir}
         mkdir -p {params.dir}/{params.folder}
         cd {params.dir}
-        busco --offline -m genome -l {Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
+        busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
         """
 
 
