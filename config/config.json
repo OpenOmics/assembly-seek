@@ -1,4 +1,10 @@
 {
     "options": {
-    }
+    },
+    "odb10_refs_path": [
+    	"/data/NCBR/apps/genome-assembly/References/Odb10/"
+    ],
+    "busco_links_file": [
+    	"config/busco_links.txt"
+    ]
 }

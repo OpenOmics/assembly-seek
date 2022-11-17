@@ -60,8 +60,6 @@ __home__  =  os.path.dirname(os.path.abspath(__file__))
 _name = os.path.basename(sys.argv[0])
 _description = 'An awesome assembly-seek pipeline'
 
-odb10_refs_path = '/data/NCBR/apps/genome-assembly/References/Odb10/Protists/'
-
 
 def unlock(sub_args):
     """Unlocks a previous runs output directory. If snakemake fails ungracefully,
@@ -429,7 +427,7 @@ def parsed_arguments(name, description):
 
     subparser_run.add_argument(
         '--lineage-name',
-        type = lambda option: os.path.join(odb10_refs_path, option)
+        type = str,
         required = True,
         help = argparse.SUPPRESS
     )

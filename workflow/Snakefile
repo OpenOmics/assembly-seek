@@ -27,11 +27,22 @@ configfile: 'config.json'
 workpath = config["project"]["workpath"]
 Genome = config["options"]["genome_size"]
 Coverage = int(config["options"]["coverage"])
-Lineage_path = config["options"]["lineage_name"]
-Lineage_name = os.path.split(config["options"]["lineage_name"])[-1]
+odb10_refs_path = config["odb10_refs_path"]
+Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
+Lineage_name = config["options"]["lineage_name"]
+busco_links_file = config["busco_links_file"]
+
+
 
 SAMPLE, = config["samples"]
 ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
+
+if os.path.exists(Lineage_path):
+    pass
+else:
+    df = pd.read_csv(busco_links_file, header=0, sep='\t', dtype=str)
+    dict_busco_links = dict(zip(df['name'].tolist(), df['link'].tolist()))
+    busco_link = dict_busco_links[Lineage_name]
 
 rule All:
     input:
@@ -306,9 +317,15 @@ rule stats_busco:
         rname="stats_busco",
         dir=directory(join(workpath, "stats_busco")), 
         folder="{assemblers}",
+        odb10_path = odb10_refs_path
+        link = busco_link
+        Lineage_name = Lineage_name
     threads: 32
     shell:
         """
+        cd {params.odb10_path}
+        wget {params.link}
+        tar -xf {params.Lineage_name}
         module load busco/4.0.2
         mkdir -p {params.dir}
         mkdir -p {params.dir}/{params.folder}
