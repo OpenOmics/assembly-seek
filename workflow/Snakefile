@@ -30,7 +30,7 @@ Coverage = int(config["options"]["coverage"])
 Lineage_path = config["options"]["lineage_name"]
 Lineage_name = os.path.split(config["options"]["lineage_name"])[-1]
 
-SAMPLE, = glob_wildcards(join(workpath, "raw/{samples}.bam"))
+SAMPLE, = config["samples"]
 ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
 
 rule All:
