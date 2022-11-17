@@ -45,7 +45,7 @@ else:
     dict_busco_links = dict(zip(df['name'].tolist(), df['link'].tolist()))
     try:
         busco_link = dict_busco_links[Lineage_name]
-    except IndexError:
+    except KeyError:
         print("no {} database exists on https://busco-archive.ezlab.org/data/lineages/".format(Lineage_name))    
 
 rule All:
