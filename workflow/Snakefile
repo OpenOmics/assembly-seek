@@ -20,6 +20,7 @@ from scripts.common import (
     provided,
     references,
     str_bool
+    check_readaccess
 )
 
 
@@ -31,7 +32,7 @@ Coverage = int(config["options"]["coverage"])
 odb10_refs_path = config["odb10_refs_path"]
 Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
 Lineage_name = config["options"]["lineage_name"]
-busco_links_file = config["busco_links_file"]
+busco_links = config["busco_links"]
 
 
 
@@ -39,14 +40,13 @@ SAMPLE, = config["samples"]
 ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
 
 if os.path.exists(Lineage_path):
-    pass
+    check_readaccess(Lineage_path)
 else:
-    df = pd.read_csv(busco_links_file, header=0, sep='\t', dtype=str)
-    dict_busco_links = dict(zip(df['name'].tolist(), df['link'].tolist()))
     try:
-        busco_link = dict_busco_links[Lineage_name]
+        busco_link = busco_links[Lineage_name]
     except KeyError:
-        print("no {} database exists on https://busco-archive.ezlab.org/data/lineages/".format(Lineage_name))    
+        sys.exit("""Fatal Error: No {} database exists, please use of the existing databases: 
+        https://busco-archive.ezlab.org/data/lineages/""".format(Lineage_name))    
 
 rule All:
     input:

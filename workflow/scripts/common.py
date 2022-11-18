@@ -16,6 +16,14 @@ def provided(samplelist, condition):
     return samplelist
 
 
+def check_readaccess(filename):
+    """Checks permissions to see if user can read a file
+    :param filename <str>: Name of file to check
+    """
+    if not os.access(filename,os.R_OK):
+        sys.exit("File or Folder: {} exists, but user cannot read from file due to permissions!".format(filename))
+
+
 def ignore(samplelist, condition):
     """
     Determines if optional rules should run. If an empty list is provided to rule all,
