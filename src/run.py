@@ -124,8 +124,8 @@ def rename(filename):
         "_2.f(ast)?q.gz$": ".R2.fastq.gz"
     }
 
-    if (filename.endswith('.R1.fastq.gz') or
-        filename.endswith('.R2.fastq.gz')):
+    if (filename.endswith('.fastq') or
+        filename.endswith('.bam')):
         # Filename is already in the correct format
         return filename
 
@@ -431,7 +431,7 @@ def add_sample_metadata(input_files, config, group=None):
     config['samples'] = []
     for file in input_files:
         # Split sample name on file extension
-        sample = re.split('\.R[12]\.fastq\.gz', os.path.basename(file))[0]
+        sample = re.sub('\.bam$|\.fastq$', '', os.path.basename(file))
         if sample not in added:
             # Only add PE sample information once
             added.append(sample)
@@ -460,9 +460,9 @@ def add_rawdata_information(sub_args, config, ifiles):
     # Updates config['project']['nends'] where
     # 1 = single-end, 2 = paired-end, -1 = bams
     convert = {1: 'single-end', 2: 'paired-end', -1: 'bam'}
-    nends = get_nends(ifiles)  # Checks PE data for both mates (R1 and R2)
-    config['project']['nends'] = nends
-    config['project']['filetype'] = convert[nends]
+    # nends = get_nends(ifiles)  # Checks PE data for both mates (R1 and R2)
+    # config['project']['nends'] = nends
+    # config['project']['filetype'] = convert[nends]
 
     # Finds the set of rawdata directories to bind
     rawdata_paths = get_rawdata_bind_paths(input_files = sub_args.input)

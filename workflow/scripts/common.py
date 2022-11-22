@@ -1,4 +1,5 @@
 # Common helper functions shared across the entire workflow
+import sys, os
 def provided(samplelist, condition):
     """
     Determines if optional rules should run. If an empty list is provided to rule all,

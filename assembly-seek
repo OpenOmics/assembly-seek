@@ -127,6 +127,8 @@ def run(sub_args):
     )
 
     config['bindpaths'] = bindpaths
+    config['efiletype'] = sub_args.input[0].split(".")[-1]
+    config['rawdata_dir'] =  "/".join(sub_args.input[0].split("/")[:-1])
 
     # Step 4. Save config to output directory
     with open(os.path.join(sub_args.output, 'config.json'), 'w') as fh:

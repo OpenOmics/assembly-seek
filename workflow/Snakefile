@@ -19,7 +19,7 @@ from scripts.common import (
     allocated,
     provided,
     references,
-    str_bool
+    str_bool,
     check_readaccess
 )
 
@@ -27,20 +27,22 @@ from scripts.common import (
 configfile: 'config.json'
 
 workpath = config["project"]["workpath"]
-Genome = config["options"]["genome_size"]
+Genome_size = config["options"]["genome_size"]
 Coverage = int(config["options"]["coverage"])
 odb10_refs_path = config["odb10_refs_path"]
 Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
 Lineage_name = config["options"]["lineage_name"]
 busco_links = config["busco_links"]
+filetype = config['efiletype']
+rawdata_dir = config['rawdata_dir']
 
 
-
-SAMPLE, = config["samples"]
+SAMPLE = config["samples"]
 ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
 
 if os.path.exists(Lineage_path):
     check_readaccess(Lineage_path)
+    busco_link = ""
 else:
     try:
         busco_link = busco_links[Lineage_name]
@@ -51,8 +53,9 @@ else:
 rule All:
     input:
         # Converting BAM to Fastq to Fasta
-        expand(join(workpath,"reads/{samples}.fastq"), samples=SAMPLE),
+        expand(join(workpath,"reads/{name}.fastq"), name = provided(SAMPLE, filetype=="bam")),
         expand(join(workpath,"reads/{samples}.fasta"), samples=SAMPLE),
+        expand(join(workpath, "{name}.fastqc.html"), name = provided(SAMPLE, filetype=="fastq")),
 
         # Canu assembly
         expand(join(workpath, "canu_assembly/{samples}.contigs.fasta"), samples=SAMPLE),
@@ -102,26 +105,58 @@ rule All:
         module load multiqc/1.8
         multiqc .
         """
+if filetype == "bam":
+    rule BAM_to_Fasta:
+        input:
+            join(rawdata_dir, "{samples}.bam")
+        output:
+            FQ=join(workpath, "reads/{samples}.fastq"),
+            FA=join(workpath, "reads/{samples}.fasta")
+        params:
+            rname="BAM_to_Fasta",
+            samtools="samtools/1.9",
+            seqkit="seqkit/0.12.1",
+            dir=directory(join(workpath, "reads"))
+        shell:
+            """
+            module load {params.samtools}
+            module load {params.seqkit}
+            mkdir -p {params.dir}
+            samtools fastq {input} > {output.FQ}
+            seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA}
+            """
+else:
+    rule FQ_to_Fasta:
+        input:
+            FQ=join(rawdata_dir, "{samples}.fastq")
+        output:
+            FA=join(workpath, "reads/{samples}.fasta"),
+        params:
+            rname="FQ_to_Fasta",
+            samtools="samtools/1.9",
+            seqkit="seqkit/0.12.1",
+            dir=directory(join(workpath, "reads"))
+        shell:
+            """
+            module load {params.samtools}
+            module load {params.seqkit}
+            mkdir -p {params.dir}
+            seqkit fq2fa --line-width 0 {input.FQ} -o {output.FA}
+            """
 
-rule BAM_to_Fasta:
-    input:
-        join(workpath, "raw/{samples}.bam")
-    output:
-        FQ=join(workpath, "reads/{samples}.fastq"),
-        FA=join(workpath, "reads/{samples}.fasta")
-    params:
-        rname="BAM_to_Fasta",
-        samtools="samtools/1.9",
-        seqkit="seqkit/0.12.1",
-        dir=directory(join(workpath, "reads"))
-    shell:
-        """
-        module load {params.samtools}
-        module load {params.seqkit}
-        mkdir -p {params.dir}
-        samtools fastq {input} > {output.FQ}
-        seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA}
-        """
+    rule QualityCheck:
+        input:
+            CCS=join(rawdata_dir, "{samples}.fastq"),
+        output:
+            PBqc=join(workpath, "{samples}.fastqc.html"),
+        params:
+            rname="fastQC",
+        threads: 32
+        shell:
+            """
+            module load python/3.7 fastqc samtools
+            fastqc --threads {threads} {input.CCS}
+            """    
 
 rule raven_assembly:
     input:
@@ -165,7 +200,7 @@ rule wtdbg2_assembly:
         conda activate wtdbg2
         mkdir -p {params.dir}
         cd {params.dir}
-        wtdbg2 -x sq -g {Genome} -t {threads} -i {input} -f -o {params.tag}
+        wtdbg2 -x sq -g {Genome_size} -t {threads} -i {input} -f -o {params.tag}
         wtpoa-cns -t {threads} -i {output.lay} -fo {output.fa}
         conda deactivate
         """
@@ -210,7 +245,7 @@ rule flye_assembly:
         """
         module load {params.flye}
         cd /lscratch/$SLURM_JOBID
-        flye --threads {threads} --pacbio-raw {input} --genome-size {Genome} --out-dir {params.dir} --asm-coverage {Coverage}
+        flye --threads {threads} --pacbio-raw {input} --genome-size {Genome_size} --out-dir {params.dir} --asm-coverage {Coverage}
         mv /lscratch/$SLURM_JOBID/{params.rname} {workpath}
         cd {params.dir}
         cp assembly.fasta {output}
@@ -231,7 +266,7 @@ rule canu_assembly:
         """
         module load {params.canu}
         mkdir -p {params.dir}
-        canu -p {params.tag} -d {params.dir} -fast genomeSize={Genome} minThreads={threads} maxThreads={threads} maxMemory=100 stopOnLowCoverage=0 useGrid=false -pacbio-raw {input}
+        canu -p {params.tag} -d {params.dir} -fast genomeSize={Genome_size} minThreads={threads} maxThreads={threads} maxMemory=100 stopOnLowCoverage=0 useGrid=false -pacbio-raw {input}
         """
 
 rule gather_assemblies:
@@ -321,9 +356,9 @@ rule stats_busco:
         rname="stats_busco",
         dir=directory(join(workpath, "stats_busco")), 
         folder="{assemblers}",
-        odb10_path = odb10_refs_path
-        link = busco_link
-        Lineage_name = Lineage_name
+        odb10_path = odb10_refs_path,
+        link = busco_link,
+        Lineage_name = Lineage_name,
         Lineage_path = Lineage_path
     threads: 32
     shell:

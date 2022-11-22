@@ -1,7 +1,7 @@
 {
     "options": {
     },
-    "odb10_refs_path": "/data/NCBR/apps/genome-assembly/References/Odb10/",
+    "odb10_refs_path": "/data/NCBR/apps/genome-assembly/References/Odb10",
     "busco_links": {
         "acidobacteria_odb10": "https://busco-archive.ezlab.org/data/lineages/acidobacteria_odb10.2020-03-06.tar.gz",
         "aconoidasida_odb10": "https://busco-archive.ezlab.org/data/lineages/aconoidasida_odb10.2020-08-05.tar.gz",
