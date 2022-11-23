@@ -1,5 +1,32 @@
 # Common helper functions shared across the entire workflow
 import sys, os
+
+def identify_samples_as_bam_fastq(samplelist, condition):
+    '''
+    From sample names determines which of the input files have bam or fastq extensions.
+    Pipeline uses this function's output to do quality check on fastqs
+    and to convert bams to fastqs.
+    @params samplelist list[<str>]:
+        List of sample names wthout extensions
+    @params condition dict[<str>]:
+        A dictionary with sample name as key and its extension as value. 
+    @return bam_samples list[<str>]:
+        List of --input samples that have bam extension
+    @return fastq_samples list[<str>]:
+        List of --input samples that have fastq extension
+    '''
+    bam_samples = []
+    fastq_samples = []
+    for i in samplelist:
+        if condition[i] == "bam":
+            bam_samples.append(i)
+        elif condition[i] == "fastq":
+            fastq_samples.append(i)
+        else:
+            sys.exit("Pipeline is not currently set up to process --input with {} extensions, use either bam or fastq files!".format(condition[i]))
+
+    return bam_samples, fastq_samples
+
 def provided(samplelist, condition):
     """
     Determines if optional rules should run. If an empty list is provided to rule all,

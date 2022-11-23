@@ -20,7 +20,8 @@ from scripts.common import (
     provided,
     references,
     str_bool,
-    check_readaccess
+    check_readaccess,
+    identify_samples_as_bam_fastq
 )
 
 
@@ -35,6 +36,7 @@ Lineage_name = config["options"]["lineage_name"]
 busco_links = config["busco_links"]
 filetype = config['efiletype']
 rawdata_dir = config['rawdata_dir']
+ext = config['extensions']
 
 
 SAMPLE = config["samples"]
@@ -53,9 +55,9 @@ else:
 rule All:
     input:
         # Converting BAM to Fastq to Fasta
-        expand(join(workpath,"reads/{name}.fastq"), name = provided(SAMPLE, filetype=="bam")),
+        expand(join(workpath,"reads/{name}.fastq"), name = identify_samples_as_bam_fastq(SAMPLE, ext)[0]),
         expand(join(workpath,"reads/{samples}.fasta"), samples=SAMPLE),
-        expand(join(workpath, "{name}.fastqc.html"), name = provided(SAMPLE, filetype=="fastq")),
+        expand(join(workpath, "{name}.fastqc.html"), name = identify_samples_as_bam_fastq(SAMPLE, ext)[1]),
 
         # Canu assembly
         expand(join(workpath, "canu_assembly/{samples}.contigs.fasta"), samples=SAMPLE),
@@ -105,58 +107,45 @@ rule All:
         module load multiqc/1.8
         multiqc .
         """
-if filetype == "bam":
-    rule BAM_to_Fasta:
-        input:
-            join(rawdata_dir, "{samples}.bam")
-        output:
-            FQ=join(workpath, "reads/{samples}.fastq"),
-            FA=join(workpath, "reads/{samples}.fasta")
-        params:
-            rname="BAM_to_Fasta",
-            samtools="samtools/1.9",
-            seqkit="seqkit/0.12.1",
-            dir=directory(join(workpath, "reads"))
-        shell:
-            """
-            module load {params.samtools}
-            module load {params.seqkit}
-            mkdir -p {params.dir}
-            samtools fastq {input} > {output.FQ}
-            seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA}
-            """
-else:
-    rule FQ_to_Fasta:
-        input:
-            FQ=join(rawdata_dir, "{samples}.fastq")
-        output:
-            FA=join(workpath, "reads/{samples}.fasta"),
-        params:
-            rname="FQ_to_Fasta",
-            samtools="samtools/1.9",
-            seqkit="seqkit/0.12.1",
-            dir=directory(join(workpath, "reads"))
-        shell:
-            """
-            module load {params.samtools}
-            module load {params.seqkit}
-            mkdir -p {params.dir}
-            seqkit fq2fa --line-width 0 {input.FQ} -o {output.FA}
-            """
 
-    rule QualityCheck:
-        input:
-            CCS=join(rawdata_dir, "{samples}.fastq"),
-        output:
-            PBqc=join(workpath, "{samples}.fastqc.html"),
-        params:
-            rname="fastQC",
-        threads: 32
-        shell:
-            """
-            module load python/3.7 fastqc samtools
-            fastqc --threads {threads} {input.CCS}
-            """    
+rule To_Fasta:
+    input:
+        file = lambda w: join(rawdata_dir, "{samples}.bam") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
+    output:
+        FQ=join(workpath, "reads/{samples}.fastq"),
+        FA=join(workpath, "reads/{samples}.fasta")
+    params:
+        rname="To_Fasta",
+        samtools="samtools/1.9",
+        seqkit="seqkit/0.12.1",
+        dir=directory(join(workpath, "reads")),
+        temp_ext = lambda w: ext[w.samples]
+    shell:
+        """
+        module load {params.samtools}
+        module load {params.seqkit}
+        mkdir -p {params.dir}
+        if [ "{params.temp_ext}" == "bam" ]; 
+        then samtools fastq {input.file} > {output.FQ};
+        samtools fastq {input} > {output.FQ};
+        seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA};
+        else seqkit fq2fa --line-width 0 {input.file} -o {output.FA}; fi
+        """
+
+rule QualityCheck:
+    input:
+        CCS=join(rawdata_dir, "{samples}.fastq"),
+    output:
+        PBqc=join(workpath, "{samples}.fastqc.html"),
+    params:
+        rname="fastQC",
+    threads: 32
+    shell:
+        """
+        module load python/3.7 fastqc samtools
+        fastqc --threads {threads} {input.CCS}
+        """    
 
 rule raven_assembly:
     input:
@@ -207,7 +196,8 @@ rule wtdbg2_assembly:
 
 rule minipolish_assembly:
     input:
-        join(workpath,"reads/{samples}.fastq")
+        fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
     output:
         ovlp=join(workpath,"minipolish_assembly/{samples}.minimap2-overlaps.paf"),
         gfa1=join(workpath,"minipolish_assembly/{samples}.miniasm-assembly.gfa"),
@@ -233,7 +223,8 @@ rule minipolish_assembly:
 
 rule flye_assembly:
     input:
-        join(workpath,"reads/{samples}.fastq")
+        fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
     output:
         join(workpath,"flye_assembly/{samples}.assembly.fasta")
     params:
@@ -253,7 +244,8 @@ rule flye_assembly:
 
 rule canu_assembly:
     input:
-        join(workpath,"reads/{samples}.fastq")
+        fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
     output:
         FA=join(workpath,"canu_assembly/{samples}.contigs.fasta")
     params:

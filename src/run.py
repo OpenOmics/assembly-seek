@@ -153,6 +153,22 @@ def rename(filename):
 
     return filename
 
+def get_file_extensions(input_files):
+    """
+    Creates a dictionary of file name and its extension 
+    as key value pair.
+    @params input_files list[<str>]:
+        List containing user-provided input fastq or bam files
+    @return bindpaths <dict>:
+        {file_name: file_extension}
+    """
+    extensions = {}
+    for file in input_files:
+        k = os.path.basename(file)[:os.path.basename(file).rfind(".")]
+        v = os.path.basename(file)[os.path.basename(file).rfind(".")+1:]
+        extensions[k] = v
+        
+    return extensions
 
 def setup(sub_args, ifiles, repo_path, output_path):
     """Setup the pipeline for execution and creates config file from templates
@@ -218,8 +234,9 @@ def setup(sub_args, ifiles, repo_path, output_path):
             # CLI value can be converted to a string
             v = str(v)
         config['options'][opt] = v
-
-
+    
+    config['extensions'] = get_file_extensions(sub_args.input)
+    
     return config
 
 
