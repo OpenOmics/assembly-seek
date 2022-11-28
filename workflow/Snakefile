@@ -124,7 +124,6 @@ rule To_Fasta:
         mkdir -p {params.dir}
         if [ "{params.temp_ext}" == "bam" ]; 
         then samtools fastq {input.file} > {output.FQ};
-        samtools fastq {input} > {output.FQ};
         seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA};
         else seqkit fq2fa --line-width 0 {input.file} -o {output.FA}; fi
         """

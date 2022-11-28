@@ -6,7 +6,7 @@
               "threads": "32",
               "gres": "lscratch:500"
       },
-      "BAM_to_Fasta": {
+      "To_Fasta": {
               "mem": "12g",
               "time": "24:00:00",
               "partition": "norm",
