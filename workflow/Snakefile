@@ -56,9 +56,9 @@ else:
 rule All:
     input:
         # Converting BAM to Fastq to Fasta
-        expand(join(workpath,"reads/{name}.fastq"), name = identify_samples_as_bam_fastq(SAMPLE, ext)[0]),
+        expand(join(workpath,"reads/{samples}.fastq"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[0]),
         expand(join(workpath,"reads/{samples}.fasta"), samples=SAMPLE),
-        expand(join(workpath, "{name}.fastqc.html"), name = identify_samples_as_bam_fastq(SAMPLE, ext)[1]),
+        expand(join(workpath, "{samples}.fastqc.html"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[1]),
 
         # Canu assembly
         #expand(join(workpath, "canu_assembly/{samples}.contigs.fasta"), samples=SAMPLE),
@@ -106,25 +106,26 @@ rule All:
 
 rule To_Fasta:
     input:
-        file = lambda w: join(rawdata_dir, "{samples}.bam") \
-        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
+        file = lambda w: join(rawdata_dir, w.samples +".bam") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
     output:
-        FQ=join(workpath, "reads/{samples}.fastq"),
+        #FQ=join(workpath, "reads/{samples}.fastq"),
         FA=join(workpath, "reads/{samples}.fasta")
     params:
         rname="To_Fasta",
         samtools="samtools/1.9",
         seqkit="seqkit/0.12.1",
         dir=directory(join(workpath, "reads")),
-        temp_ext = lambda w: ext[w.samples]
+        temp_ext = lambda w: ext[w.samples],
+        FQ=join(workpath, "reads/{samples}.fastq")
     shell:
         """
         module load {params.samtools}
         module load {params.seqkit}
         mkdir -p {params.dir}
         if [ "{params.temp_ext}" == "bam" ]; 
-        then samtools fastq {input.file} > {output.FQ};
-        seqkit fq2fa --line-width 0 {output.FQ} -o {output.FA};
+        then samtools fastq {input.file} > {params.FQ};
+        seqkit fq2fa --line-width 0 {params.FQ} -o {output.FA};
         else seqkit fq2fa --line-width 0 {input.file} -o {output.FA}; fi
         """
 
@@ -191,7 +192,7 @@ rule raven_assembly:
 
 # rule minipolish_assembly:
 #     input:
-#         fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
+#         fastq_file = lambda w: join(workpath,"reads/{w.samples}.fastq") \
 #         if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
 #     output:
 #         ovlp=join(workpath,"minipolish_assembly/{samples}.minimap2-overlaps.paf"),
@@ -218,14 +219,14 @@ rule raven_assembly:
 
 rule flye_assembly:
     input:
-        fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
-        if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
+        fastq_file = lambda w: join(workpath,"reads", w.samples+".fastq") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
     output:
         join(workpath,"flye_assembly/{samples}.assembly.fasta")
     params:
         rname="flye_assembly",
         dir=directory(join(workpath,"flye_assembly")),
-        flye="flye/2.7"
+        flye="flye/2.9.1"
     threads: 100
     shell:
         """
@@ -239,8 +240,8 @@ rule flye_assembly:
 
 # rule canu_assembly:
 #     input:
-#         fastq_file = lambda w: join(workpath,"reads/{samples}.fastq") \
-#         if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
+#         fastq_file = lambda w: join(workpath,"reads/{w.samples}.fastq") \
+#         if ext[w.samples]=="bam" else join(rawdata_dir, "{w.samples}.fastq")
 #     output:
 #         FA=join(workpath,"canu_assembly/{samples}.contigs.fasta")
 #     params:
