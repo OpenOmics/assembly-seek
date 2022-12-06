@@ -2,7 +2,7 @@
    
   <h1>assembly-seek 🔬</h1>
   
-  **_long pipeline name_**
+  **_De novo Long-read Genome Assembly Pipeline_**
 
   [![tests](https://github.com/OpenOmics/assembly-seek/workflows/tests/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/main.yaml) [![docs](https://github.com/OpenOmics/assembly-seek/workflows/docs/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/docs.yml) [![GitHub issues](https://img.shields.io/github/issues/OpenOmics/assembly-seek?color=brightgreen)](https://github.com/OpenOmics/assembly-seek/issues)  [![GitHub license](https://img.shields.io/github/license/OpenOmics/assembly-seek)](https://github.com/OpenOmics/assembly-seek/blob/main/LICENSE) 
   
@@ -20,7 +20,7 @@ The **`./assembly-seek`** pipeline is composed several inter-related sub command
  * [<code>assembly-seek <b>unlock</b></code>](https://openomics.github.io/assembly-seek/usage/unlock/): Unlocks a previous runs output directory.
  * [<code>assembly-seek <b>cache</b></code>](https://openomics.github.io/assembly-seek/usage/cache/): Cache remote resources locally, coming soon!
 
-**assembly-seek** is a comprehensive ...insert long description. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
+**assembly-seek** is a comprehensive long-read genome assembly pipeline. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
 
 The pipeline is compatible with data generated from Illumina short-read sequencing technologies. As input, it accepts a set of FastQ files and can be run locally on a compute instance or on-premise using a cluster. A user can define the method or mode of execution. The pipeline can submit jobs to a cluster using a job scheduler like SLURM (more coming soon!). A hybrid approach ensures the pipeline is accessible to all users.
 
