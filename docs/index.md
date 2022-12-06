@@ -2,7 +2,7 @@
 
   <h1 style="font-size: 250%">assembly-seek 🔬</h1>
 
-  <b><i>long pipeline name</i></b><br> 
+  <b><i>De novo Long-read Genome Assembly Pipeline</i></b><br> 
   <a href="https://github.com/OpenOmics/assembly-seek/actions/workflows/main.yaml">
     <img alt="tests" src="https://github.com/OpenOmics/assembly-seek/workflows/tests/badge.svg">
   </a>
@@ -24,7 +24,7 @@
 
 
 ## Overview
-Welcome to assembly-seek's documentation! This guide is the main source of documentation for users that are getting started with the [long pipeline name](https://github.com/OpenOmics/assembly-seek/). 
+Welcome to assembly-seek's documentation! This guide is the main source of documentation for users that are getting started with the [genome assembly pipeline](https://github.com/OpenOmics/assembly-seek/). 
 
 The **`./assembly-seek`** pipeline is composed several inter-related sub commands to setup and run the pipeline across different systems. Each of the available sub commands perform different functions: 
 
@@ -32,7 +32,7 @@ The **`./assembly-seek`** pipeline is composed several inter-related sub command
  * [<code>assembly-seek <b>unlock</b></code>](usage/unlock.md): Unlocks a previous runs output directory.
  * [<code>assembly-seek <b>cache</b></code>](usage/cache.md): Cache remote resources locally, coming soon!
 
-**assembly-seek** is a comprehensive ...insert long description. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
+**assembly-seek** is a comprehensive long-read genome assembly pipeline. It relies on technologies like [Singularity<sup>1</sup>](https://singularity.lbl.gov/) to maintain the highest-level of reproducibility. The pipeline consists of a series of data processing and quality-control steps orchestrated by [Snakemake<sup>2</sup>](https://snakemake.readthedocs.io/en/stable/), a flexible and scalable workflow management system, to submit jobs to a cluster.
 
 The pipeline is compatible with data generated from Illumina short-read sequencing technologies. As input, it accepts a set of FastQ files and can be run locally on a compute instance or on-premise using a cluster. A user can define the method or mode of execution. The pipeline can submit jobs to a cluster using a job scheduler like SLURM (more coming soon!). A hybrid approach ensures the pipeline is accessible to all users.
 

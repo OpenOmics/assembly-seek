@@ -2,7 +2,7 @@
 site_name: assembly-seek
 site_author: Skyler Kuhn
 site_description: >-
-  An awesome OpenOmics assembly-seek pipeline
+  An awesome de novo long-read genome assembly pipeline
 
 # Repository
 repo_name: OpenOmics/assembly-seek
