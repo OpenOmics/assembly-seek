@@ -1,26 +1,394 @@
+
+###########################################################################
+# Long read (PacBio) denovo genome assembly
+# Snakemake/5.13.0
+###########################################################################
 # Python standard library
 from os.path import join
 from os import listdir
 import os, sys
+import pandas as pd
 
 # 3rd party imports from pypi
 from snakemake.workflow import workflow as wf_api
 from snakemake.utils import R
+from snakemake.io import expand, glob_wildcards
 
 # Local imports
 from scripts.common import (
     allocated,
-    provided, 
+    provided,
     references,
-    str_bool
+    str_bool,
+    check_readaccess,
+    identify_samples_as_bam_fastq
 )
 
 
-# Final ouput files of the pipeline
-rule all:
+configfile: 'config.json'
+
+workpath = config["project"]["workpath"]
+Genome_size = config["options"]["genome_size"]
+Coverage = int(config["options"]["coverage"])
+odb10_refs_path = config["odb10_refs_path"]
+Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
+Lineage_name = config["options"]["lineage_name"]
+busco_links = config["busco_links"]
+filetype = config['efiletype']
+rawdata_dir = config['rawdata_dir']
+ext = config['extensions']
+
+
+SAMPLE = config["samples"]
+#ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
+ASSEMBLER = ["flye", "raven", "hifiasm"]
+
+if os.path.exists(Lineage_path):
+    check_readaccess(Lineage_path)
+    busco_link = ""
+else:
+    try:
+        busco_link = busco_links[Lineage_name]
+    except KeyError:
+        sys.exit("""Fatal Error: No {} database exists, please use of the existing databases: 
+        https://busco-archive.ezlab.org/data/lineages/""".format(Lineage_name))    
+
+rule All:
     input:
-        []
+        # Converting BAM to Fastq to Fasta
+        expand(join(workpath,"reads/{samples}.fastq"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[0]),
+        expand(join(workpath,"reads/{samples}.fasta"), samples=SAMPLE),
+        expand(join(workpath, "{samples}.fastqc.html"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[1]),
+
+        # Canu assembly
+        #expand(join(workpath, "canu_assembly/{samples}.contigs.fasta"), samples=SAMPLE),
+
+        # Flye assembly
+        expand(join(workpath,"flye_assembly/{samples}.assembly.fasta"), samples=SAMPLE),
+
+        # Raven assembly
+        #expand(join(workpath,"raven_assembly/{samples}.raven-graph.gfa"), samples=SAMPLE),
+        expand(join(workpath,"raven_assembly/{samples}.raven-graph.fasta"), samples=SAMPLE),
+
+        # Wtdbg2 assembly
+        #expand(join(workpath,"wtdbg2_assembly/{samples}.wtdbg2.ctg.lay.gz"), samples=SAMPLE),
+        #expand(join(workpath,"wtdbg2_assembly/{samples}.wtdbg2.ctg.fa"), samples=SAMPLE),
+
+        # Minipolish (minimap2-miniasm-racon) assembly
+        #expand(join(workpath,"minipolish_assembly/{samples}.minipolished-assembly.fa"), samples=SAMPLE),
+        
+        # Hi-Fi-ASM assembly
+        expand(join(workpath,"hifiasm/{samples}.bp.p_ctg.gfa"), samples=SAMPLE),
+        expand(join(workpath,"hifiasm/{samples}.p_ctg.fa"), samples=SAMPLE), 
+
+        # Gather assemblies in a directory
+        expand(join(workpath,"all-assemblies/{samples}.{assemblers}.fasta"), samples=SAMPLE, assemblers=ASSEMBLER),
+      
+        # Quast - assembly statistics without reference
+        join(workpath,"sample-quast/report.html"),
+        expand(join(workpath,"stats_busco/{assemblers}/short_summary.{samples}.{Lineage_name}.{assemblers}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
+        join(workpath,"busco-summaries/busco_figure.png"),
 
 
-# Import rules 
-include: join("rules", "common.smk")
+        # Scaffolders (ScaRa)
+        expand(join(workpath, "minimap2_overlaps/{samples}.read-read-overlap.paf"),samples=SAMPLE),
+        expand(join(workpath, "minimap2_overlaps/{samples}.{assemblers}-contig-overlap.paf"),samples=SAMPLE, assemblers=ASSEMBLER),
+
+    output:
+        "multiqc_report.html"
+    params:
+        rname="denovoAsm"
+    shell:
+        """
+        module load multiqc/1.8
+        multiqc .
+        """
+
+rule To_Fasta:
+    input:
+        file = lambda w: join(rawdata_dir, w.samples +".bam") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
+    output:
+        #FQ=join(workpath, "reads/{samples}.fastq"),
+        FA=join(workpath, "reads/{samples}.fasta")
+    params:
+        rname="To_Fasta",
+        samtools="samtools/1.9",
+        seqkit="seqkit/0.12.1",
+        dir=directory(join(workpath, "reads")),
+        temp_ext = lambda w: ext[w.samples],
+        FQ=join(workpath, "reads/{samples}.fastq")
+    shell:
+        """
+        module load {params.samtools}
+        module load {params.seqkit}
+        mkdir -p {params.dir}
+        if [ "{params.temp_ext}" == "bam" ]; 
+        then samtools fastq {input.file} > {params.FQ};
+        seqkit fq2fa --line-width 0 {params.FQ} -o {output.FA};
+        else seqkit fq2fa --line-width 0 {input.file} -o {output.FA}; fi
+        """
+
+rule QualityCheck:
+    input:
+        CCS=join(rawdata_dir, "{samples}.fastq"),
+    output:
+        PBqc=join(workpath, "{samples}.fastqc.html"),
+    params:
+        rname="fastQC",
+    threads: 32
+    shell:
+        """
+        module load python/3.7 fastqc samtools
+        fastqc --threads {threads} {input.CCS}
+        """    
+
+rule raven_assembly:
+    input:
+        join(workpath,"reads/{samples}.fasta")
+    output:
+        gfa=join(workpath, "raven_assembly/{samples}.raven-graph.gfa"),
+        fa=join(workpath, "raven_assembly/{samples}.raven-graph.fasta")
+    params:
+        rname="raven_assembly",
+        dir=directory(join(workpath, "raven_assembly")),
+        gfa="{samples}.raven-graph.gfa",
+    #conda: "envs/raven-assembler.yaml"
+    threads: 32
+    shell:
+        """
+        source /data/NCBR/apps/genome-assembly/conda/etc/profile.d/conda.sh
+        conda activate raven-assembler
+        mkdir -p {params.dir}
+        cd {params.dir}
+        #raven --threads {threads} {input} > {output.fa}
+        raven --graphical-fragment-assembly {params.gfa} --threads {threads} {input}
+        awk '$1 ~/S/ {{print ">"$2"\\n"$3}}' {output.gfa} > {output.fa}
+        conda deactivate
+        """
+
+# rule wtdbg2_assembly:
+#     input:
+#         join(workpath,"reads/{samples}.fasta")
+#     output:
+#         lay=join(workpath,"wtdbg2_assembly/{samples}.wtdbg2.ctg.lay.gz"),
+#         fa=join(workpath,"wtdbg2_assembly/{samples}.wtdbg2.ctg.fa")
+#     params:
+#         rname="wtdbg2_assembly",
+#         dir=directory(join(workpath,"wtdbg2_assembly")),
+#         tag="{samples}.wtdbg2"
+#     threads: 32
+#     #conda: "envs/wtdbg2.yaml"
+#     shell:
+#         """
+#         source /data/NCBR/apps/genome-assembly/conda/etc/profile.d/conda.sh
+#         conda activate wtdbg2
+#         mkdir -p {params.dir}
+#         cd {params.dir}
+#         wtdbg2 -x sq -g {Genome_size} -t {threads} -i {input} -f -o {params.tag}
+#         wtpoa-cns -t {threads} -i {output.lay} -fo {output.fa}
+#         conda deactivate
+#         """
+
+# rule minipolish_assembly:
+#     input:
+#         fastq_file = lambda w: join(workpath,"reads/{w.samples}.fastq") \
+#         if ext[w.samples]=="bam" else join(rawdata_dir, "{samples}.fastq")
+#     output:
+#         ovlp=join(workpath,"minipolish_assembly/{samples}.minimap2-overlaps.paf"),
+#         gfa1=join(workpath,"minipolish_assembly/{samples}.miniasm-assembly.gfa"),
+#         gfa2=join(workpath,"minipolish_assembly/{samples}.minipolished-assembly.gfa"),
+#         fa=join(workpath,"minipolish_assembly/{samples}.minipolished-assembly.fa")
+#     params:
+#         rname="minipolish_assembly",
+#         dir=directory(join(workpath,"minipolish_assembly"))
+#     #conda: "envs/minipolish.yaml"
+#     threads: 32
+#     shell:
+#         """
+#         source /data/NCBR/apps/genome-assembly/conda/etc/profile.d/conda.sh
+#         conda activate minipolish
+#         mkdir -p {params.dir}
+#         module load miniasm/0.3.r179
+#         minimap2 -t {threads} -x ava-pb {input} {input} > {output.ovlp}
+#         miniasm -f {input} {output.ovlp} > {output.gfa1}
+#         minipolish --threads {threads} {input} {output.gfa1} > {output.gfa2}
+#         awk '$1 ~/S/ {{print ">"$2"\\n"$3}}' {output.gfa2} > {output.fa}
+#         conda deactivate
+#         """
+
+rule flye_assembly:
+    input:
+        fastq_file = lambda w: join(workpath,"reads", w.samples+".fastq") \
+        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
+    output:
+        join(workpath,"flye_assembly/{samples}.assembly.fasta")
+    params:
+        rname="flye_assembly",
+        dir=directory(join(workpath,"flye_assembly")),
+        flye="flye/2.9.1"
+    threads: 100
+    shell:
+        """
+        module load {params.flye}
+        cd /lscratch/$SLURM_JOBID
+        flye --threads {threads} --pacbio-raw {input} --genome-size {Genome_size} --out-dir {params.dir} --asm-coverage {Coverage}
+        mv /lscratch/$SLURM_JOBID/{params.rname} {workpath}
+        cd {params.dir}
+        cp assembly.fasta {output}
+        """
+
+# rule canu_assembly:
+#     input:
+#         fastq_file = lambda w: join(workpath,"reads/{w.samples}.fastq") \
+#         if ext[w.samples]=="bam" else join(rawdata_dir, "{w.samples}.fastq")
+#     output:
+#         FA=join(workpath,"canu_assembly/{samples}.contigs.fasta")
+#     params:
+#         rname="canu_assembly",
+#         dir=directory(join(workpath,"canu_assembly")),
+#         tag="{samples}",
+#         canu="canu/2.0"
+#     threads: 32
+#     shell:
+#         """
+#         module load {params.canu}
+#         mkdir -p {params.dir}
+#         canu -p {params.tag} -d {params.dir} -fast genomeSize={Genome_size} minThreads={threads} maxThreads={threads} maxMemory=100 stopOnLowCoverage=0 useGrid=false -pacbio-raw {input}
+#         """
+
+rule hifiasm:
+    input:
+        FA=join(workpath,"reads/{samples}.fasta"),
+    output:
+        GFA=join(workpath,"hifiasm/{samples}.bp.p_ctg.gfa"),
+        FA=join(workpath,"hifiasm/{samples}.p_ctg.fa"),
+    params:
+        rname="hifiasm",
+        dir=join(workpath,"hifiasm"),
+        out="{samples}",
+        hifi="/data/NCBR/rawdata/NCBR-298/hifiasm",
+    threads: 32
+    shell:
+        """
+        mkdir -p {params.dir}
+        {params.hifi}/hifiasm -o {params.dir}/{params.out} -t {threads} -f0 {input.FA}
+        awk '/^S/{{print ">"$2;print $3}}' {output.GFA} > {output.FA}
+        """
+
+rule gather_assemblies:
+    input:
+        A1=join(workpath,"hifiasm/{samples}.p_ctg.fa"),
+#        A1=join(workpath,"canu_assembly/{samples}.contigs.fasta")
+        A2=join(workpath,"flye_assembly/{samples}.assembly.fasta"),
+#        A3=join(workpath,"minipolish_assembly/{samples}.minipolished-assembly.fa")
+        A4=join(workpath,"raven_assembly/{samples}.raven-graph.fasta"),
+#        A5=join(workpath,"wtdbg2_assembly/{samples}.wtdbg2.ctg.fa")
+    output:
+        A1=join(workpath,"all-assemblies/{samples}.hifiasm.fasta"),
+#        A1=join(workpath,"all-assemblies/{samples}.canu.fasta"),
+        A2=join(workpath,"all-assemblies/{samples}.flye.fasta"),
+#        A3join(workpath,"all-assemblies/{samples}.minipolish.fasta"),
+        A4=join(workpath,"all-assemblies/{samples}.raven.fasta"),
+#        A5=join(workpath,"all-assemblies/{samples}.wtdbg2.fasta")
+    params:
+        rname = "gather_assemblies",
+        dir=join(workpath, "all-assemblies")
+    shell:
+        """
+        mkdir -p {params.dir}
+        cp {input.A1} {output.A1}
+        cp {input.A2} {output.A2}
+        cp {input.A4} {output.A4}
+        """
+
+rule minimap2_overlaps:
+    input:
+        A1=join(workpath, "all-assemblies/{samples}.hifiasm.fasta"),
+        #A=join(workpath,"all-assemblies/{samples}.{assemblers}.fasta"), 
+        #A1=join(workpath, "all-assemblies/{samples}.canu.fasta"),
+        A2=join(workpath, "all-assemblies/{samples}.raven.fasta"),
+        #A3=join(workpath, "all-assemblies/{samples}.minipolish.fasta"),
+        A4=join(workpath, "all-assemblies/{samples}.flye.fasta"),
+        #A5=join(workpath, "all-assemblies/{samples}.wtdbg2.fasta")
+    output:
+        ovlp=join(workpath,"minimap2_overlaps/{samples}.read-read-overlap.paf"),
+        A1=join(workpath,"minimap2_overlaps/{samples}.hifiasm-contig-overlap.paf"),
+        A2=join(workpath, "minimap2_overlaps/{samples}.raven-contig-overlap.paf"),
+        A4=join(workpath, "minimap2_overlaps/{samples}.flye-contig-overlap.paf"),   
+    params:
+        rname="minimap2_overlaps",
+        raw=join(workpath, "reads/{samples}.fasta"),
+        ovlp=join(workpath,"minimap2_overlaps/{samples}.read-read-overlap.paf"),
+        dir=join(workpath,"minimap2_overlaps")
+    threads: 32
+    shell:
+        """
+        module load minimap2/2.17
+        mkdir -p {params.dir}
+        minimap2 -t {threads} -x ava-pb {params.raw} {params.raw} > {params.ovlp}
+        minimap2 -t {threads} -x ava-pb {params.raw} {input.A1} > {output.A1}
+        minimap2 -t {threads} -x ava-pb {params.raw} {input.A2} > {output.A2}
+        minimap2 -t {threads} -x ava-pb {params.raw} {input.A4} > {output.A4}
+        """
+
+rule stats_quast:
+    input:
+        asm=expand(join(workpath,"all-assemblies/{samples}.{assemblers}.fasta"), samples=SAMPLE, assemblers=ASSEMBLER),
+    output:
+        ST=join(workpath,"sample-quast/report.html"),
+    params:
+        rname="stats_quast",
+        batch='--cpus-per-task=72 --mem=100g --time=10:00:00',
+        dir=directory("sample-quast")
+    threads: 32
+    shell:
+        """
+        module unload python
+        module load quast/5.0.2
+        module load circos/0.69-9
+        quast.py -o {params.dir} -t {threads} --circos -L {input.asm}
+        """
+
+
+rule stats_busco:
+    input:
+        asm=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
+    output:
+        ST=join(workpath,"stats_busco/{assemblers}/short_summary.{samples}.{Lineage_name}.{assemblers}.txt"),
+    params:
+        rname="stats_busco",
+        dir=directory(join(workpath, "stats_busco")), 
+        folder="{assemblers}",
+        odb10_path = odb10_refs_path,
+        link = busco_link,
+        Lineage_name = Lineage_name,
+        Lineage_path = Lineage_path
+    threads: 32
+    shell:
+        """
+        if [ ! -d "{params.Lineage_path}" ]; then cd {params.odb10_path}; 
+        wget {params.link}; tar -xf {params.Lineage_name}; fi
+        module load busco/4.0.2
+        mkdir -p {params.dir}
+        mkdir -p {params.dir}/{params.folder}
+        cd {params.dir}
+        busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
+        """
+
+
+rule busco_summaries:
+    input:
+        expand(join(workpath,"stats_busco/{assemblers}/short_summary.{samples}.{Lineage_name}.{assemblers}.txt"), assemblers=ASSEMBLER, Lineage_name=Lineage_name, samples=SAMPLE),
+    output:
+        join(workpath,"busco-summaries/busco_figure.png"),
+    params:
+        rname="busco_summaries",
+        dir=directory(join(workpath, "busco-summaries")),
+    shell:
+        """
+        module load busco/4.0.2
+        mkdir -p {params.dir}
+        cp {input} {params.dir}
+        python3 /usr/local/apps/busco/4.0.2/generate_plot.py -rt specific –wd {params.dir}
+        """

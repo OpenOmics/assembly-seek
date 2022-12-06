@@ -127,6 +127,8 @@ def run(sub_args):
     )
 
     config['bindpaths'] = bindpaths
+    config['efiletype'] = sub_args.input[0].split(".")[-1]
+    config['rawdata_dir'] =  "/".join(sub_args.input[0].split("/")[:-1])
 
     # Step 4. Save config to output directory
     with open(os.path.join(sub_args.output, 'config.json'), 'w') as fh:
@@ -268,6 +270,14 @@ def parsed_arguments(name, description):
                                 provided working directory has not been initialized,
                                 it will be created automatically.
                                   Example: --output /data/$USER/output
+          --genome-size
+                                Total DNA sequence of the organism in Mb or Gb.
+                                  Example: --genome-size "23.5m"
+          --coverage             
+                                An approximate prior for expected aligned coverage used
+                                by flye. A subset of the longest reads for initial 
+                                disjointig assembly.
+                                  Example : --coverage 200
 
         {3}{4}Analysis options:{5}
           ...coming soon!
@@ -403,8 +413,28 @@ def parsed_arguments(name, description):
         help = argparse.SUPPRESS
     )
 
+    subparser_run.add_argument(
+        '--genome-size',
+        type = str,
+        required = True,
+        help = argparse.SUPPRESS
+    ) 
+
+    subparser_run.add_argument(
+        '--coverage',
+        type = int,
+        required = True,
+        help = argparse.SUPPRESS
+    )
+
+    subparser_run.add_argument(
+        '--lineage-name',
+        type = str,
+        required = True,
+        help = argparse.SUPPRESS
+    )
+
     # Optional Arguments
-    # Add custom help message
     subparser_run.add_argument(
         '-h', '--help', 
         action='help', 

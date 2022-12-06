@@ -124,8 +124,8 @@ def rename(filename):
         "_2.f(ast)?q.gz$": ".R2.fastq.gz"
     }
 
-    if (filename.endswith('.R1.fastq.gz') or
-        filename.endswith('.R2.fastq.gz')):
+    if (filename.endswith('.fastq') or
+        filename.endswith('.bam')):
         # Filename is already in the correct format
         return filename
 
@@ -153,6 +153,22 @@ def rename(filename):
 
     return filename
 
+def get_file_extensions(input_files):
+    """
+    Creates a dictionary of file name and its extension 
+    as key value pair.
+    @params input_files list[<str>]:
+        List containing user-provided input fastq or bam files
+    @return bindpaths <dict>:
+        {file_name: file_extension}
+    """
+    extensions = {}
+    for file in input_files:
+        k = os.path.basename(file)[:os.path.basename(file).rfind(".")]
+        v = os.path.basename(file)[os.path.basename(file).rfind(".")+1:]
+        extensions[k] = v
+        
+    return extensions
 
 def setup(sub_args, ifiles, repo_path, output_path):
     """Setup the pipeline for execution and creates config file from templates
@@ -218,8 +234,9 @@ def setup(sub_args, ifiles, repo_path, output_path):
             # CLI value can be converted to a string
             v = str(v)
         config['options'][opt] = v
-
-
+    
+    config['extensions'] = get_file_extensions(sub_args.input)
+    
     return config
 
 
@@ -431,7 +448,7 @@ def add_sample_metadata(input_files, config, group=None):
     config['samples'] = []
     for file in input_files:
         # Split sample name on file extension
-        sample = re.split('\.R[12]\.fastq\.gz', os.path.basename(file))[0]
+        sample = re.sub('\.bam$|\.fastq$', '', os.path.basename(file))
         if sample not in added:
             # Only add PE sample information once
             added.append(sample)
@@ -460,9 +477,9 @@ def add_rawdata_information(sub_args, config, ifiles):
     # Updates config['project']['nends'] where
     # 1 = single-end, 2 = paired-end, -1 = bams
     convert = {1: 'single-end', 2: 'paired-end', -1: 'bam'}
-    nends = get_nends(ifiles)  # Checks PE data for both mates (R1 and R2)
-    config['project']['nends'] = nends
-    config['project']['filetype'] = convert[nends]
+    # nends = get_nends(ifiles)  # Checks PE data for both mates (R1 and R2)
+    # config['project']['nends'] = nends
+    # config['project']['filetype'] = convert[nends]
 
     # Finds the set of rawdata directories to bind
     rawdata_paths = get_rawdata_bind_paths(input_files = sub_args.input)
