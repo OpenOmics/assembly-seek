@@ -444,7 +444,7 @@ def parsed_arguments(name, description):
     )
 
     subparser_run.add_argument(
-        '--assembler',
+        '--assemblers',
         type = str,
         required = False,
         default = ["flye", "hifiasm", "raven"],

@@ -21,7 +21,7 @@
       },
       "flye_assembly": {
               "mem": "999g",
-              "time": "24:00:00",
+              "time": "2-00:00:00",
               "partition": "largemem",
               "threads": "100",
               "gres": "lscratch:500",
@@ -67,5 +67,12 @@
               "threads": "32",
               "gres": "lscratch:500",
       },
+      "hifiasm": {
+              "mem": "150g",
+              "time": "2-00:00:00",
+              "partition": "norm",
+              "threads": "32",
+              "gres": "lscratch:500",
+      }
 }
 

@@ -41,7 +41,7 @@ ext = config['extensions']
 
 SAMPLE = config["samples"]
 #ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
-ASSEMBLER = config["options"]["assembler"]
+ASSEMBLER = config["options"]["assemblers"]
 exten=["fasta", "fa"]
 
 if os.path.exists(Lineage_path):
