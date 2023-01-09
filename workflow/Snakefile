@@ -201,17 +201,20 @@ rule flye_assembly:
         join(workpath,"flye_assembly/{samples}.flye.fasta")
     params:
         rname="flye_assembly",
-        dir=directory(join(workpath,"flye_assembly")),
-        flye="flye/2.9.1"
+        flye="flye/2.9.1",
+        id="{samples}",
+        dir= join(workpath,"flye_assembly")
     threads: 100
     shell:
         """
         module load {params.flye}
+        mkdir -p {params.rname}
         cd /lscratch/$SLURM_JOBID
-        flye --threads {threads} --pacbio-raw {input} --genome-size {Genome_size} --out-dir {params.dir} --asm-coverage {Coverage}
-        mv /lscratch/$SLURM_JOBID/{params.rname} {workpath}
-        cd {params.dir}
-        cp assembly.fasta {output}
+        mkdir -p {params.rname}/{params.id}
+        flye --threads {threads} --pacbio-hifi {input} --genome-size {Genome_size} --out-dir {params.rname}/{params.id} --asm-coverage {Coverage}
+        mv /lscratch/$SLURM_JOBID/{params.rname}/{params.id} {params.dir}
+        cd {params.dir}/{params.id}
+        mv assembly.fasta {output}
         """
 
 # rule canu_assembly:
@@ -237,7 +240,7 @@ rule hifiasm:
     input:
         FA=join(workpath,"reads/{samples}.fasta"),
     output:
-        GFA=join(workpath,"hifiasm_assembly/{samples}.hifiasm.gfa"),
+        GFA=join(workpath,"hifiasm_assembly/{samples}.bp.p_ctg.gfa"),
         FA=join(workpath,"hifiasm_assembly/{samples}.hifiasm.fasta"),
     params:
         rname="hifiasm",
@@ -303,10 +306,6 @@ rule stats_quast:
         module load circos/0.69-9
         quast.py -o {params.dir} -t {threads} --circos -L {input.asm}
         """
-
-
-rule stats_busco:
-    input:
         asm=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
     output:
         ST=join(workpath,"stats_busco/{assemblers}_assembly/short_summary.{samples}.{Lineage_name}.{assemblers}.txt"),

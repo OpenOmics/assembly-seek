@@ -2,7 +2,7 @@
       "__default__": {
               "mem": "50g",
               "time": "24:00:00",
-              "partition": "norm,largemem",
+              "partition": "norm",
               "threads": "32",
               "gres": "lscratch:500"
       },
@@ -20,7 +20,7 @@
               "gres": "lscratch:500",
       },
       "flye_assembly": {
-              "mem": "999g",
+              "mem": "500g",
               "time": "2-00:00:00",
               "partition": "largemem",
               "threads": "100",
@@ -28,7 +28,7 @@
       },
       "raven_assembly": {
               "mem": "150g",
-              "time": "24:00:00",
+              "time": "2-00:00:00",
               "partition": "norm",
               "threads": "32",
               "gres": "lscratch:500",
@@ -57,13 +57,13 @@
       "stats_quast": {
               "mem": "100g",
               "time": "5-00:00:00",
-              "partition": "norm,largemem",
+              "partition": "norm",
               "threads": "32",
       },
       "stats_busco": {
               "mem": "100g",
               "time": "5-00:00:00",
-              "partition": "norm,largemem",
+              "partition": "norm",
               "threads": "32",
               "gres": "lscratch:500",
       },
