@@ -61,7 +61,7 @@
               "threads": "32",
       },
       "stats_busco": {
-              "mem": "100g",
+              "mem": "50g",
               "time": "5-00:00:00",
               "partition": "norm",
               "threads": "32",
