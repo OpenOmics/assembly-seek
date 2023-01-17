@@ -68,7 +68,7 @@ rule All:
       
         # Quast - assembly statistics without reference
         join(workpath,"sample-quast/report.html"),
-        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{samples}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
+        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
         join(workpath,"busco-summaries/busco_figure.png")
     output:
         "multiqc_report.html"
@@ -310,7 +310,7 @@ rule stats_busco:
     input:
         asm=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
     output:
-        ST=join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{samples}.txt"),
+        ST=join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"),
     params:
         rname="stats_busco",
         dir=directory(join(workpath, "stats_busco")), 
@@ -334,7 +334,7 @@ rule stats_busco:
 
 rule busco_summaries:
     input:
-        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{samples}.txt"), assemblers=ASSEMBLER, Lineage_name=Lineage_name, samples=SAMPLE),
+        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"), assemblers=ASSEMBLER, Lineage_name=Lineage_name, samples=SAMPLE),
     output:
         join(workpath,"busco-summaries/busco_figure.png"),
     params:
