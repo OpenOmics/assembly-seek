@@ -272,13 +272,20 @@ def parsed_arguments(name, description):
                                 it will be created automatically.
                                   Example: --output /data/$USER/output
           --genome-size
-                                Total DNA sequence of the organism in Mb or Gb.
-                                  Example: --genome-size "23.5m"
+                                Total DNA sequence of the organism in Mb or Gb. Required flag. 
+                                  Example: --genome-size 23.5m
           --coverage             
                                 An approximate prior for expected aligned coverage used
                                 by flye. A subset of the longest reads for initial 
-                                disjointig assembly.
+                                disjointig assembly. Default coverage is 80.
                                   Example : --coverage 200
+          --lineage-name        
+                                Busco database name, should be present/downloaded from 
+                                https://busco-archive.ezlab.org/data/lineages/ to odb10_refs_path 
+                                (see config.json for path). 
+          --assemblers     
+                                Choose assemblers from the following default assemblers: 
+                                flye, raven, hifiasm.                        
 
         {3}{4}Analysis options:{5}
           ...coming soon!
@@ -424,7 +431,8 @@ def parsed_arguments(name, description):
     subparser_run.add_argument(
         '--coverage',
         type = int,
-        required = True,
+        required = False,
+        default = 80,
         help = argparse.SUPPRESS
     )
 
@@ -432,6 +440,14 @@ def parsed_arguments(name, description):
         '--lineage-name',
         type = str,
         required = True,
+        help = argparse.SUPPRESS
+    )
+
+    subparser_run.add_argument(
+        '--assemblers',
+        type = str,
+        required = False,
+        default = ["flye", "hifiasm", "raven"],
         help = argparse.SUPPRESS
     )
 
