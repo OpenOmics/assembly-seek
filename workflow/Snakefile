@@ -317,6 +317,7 @@ rule stats_busco:
         folder="{samples}.{assemblers}",
         odb10_path = odb10_refs_path,
         link = busco_link,
+        s = "{samples}",
         Lineage_name = Lineage_name,
         Lineage_path = Lineage_path
     threads: 32
