@@ -7,7 +7,7 @@
   [![tests](https://github.com/OpenOmics/assembly-seek/workflows/tests/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/main.yaml) [![docs](https://github.com/OpenOmics/assembly-seek/workflows/docs/badge.svg)](https://github.com/OpenOmics/assembly-seek/actions/workflows/docs.yml) [![GitHub issues](https://img.shields.io/github/issues/OpenOmics/assembly-seek?color=brightgreen)](https://github.com/OpenOmics/assembly-seek/issues)  [![GitHub license](https://img.shields.io/github/license/OpenOmics/assembly-seek)](https://github.com/OpenOmics/assembly-seek/blob/main/LICENSE) 
   
   <i>
-    This is the home of the pipeline, assembly-seek. Its long-term goals: to accurately ...insert goal, to infer ..insert goal, and to boldly ..insert goal like no pipeline before!
+    This is the home of the pipeline, assembly-seek. Its long-term goals: to accurately construct genomes from PacBio/ONT long read sequencing data!
   </i>
 </div>
 
