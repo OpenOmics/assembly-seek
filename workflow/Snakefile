@@ -68,7 +68,7 @@ rule All:
       
         # Quast - assembly statistics without reference
         join(workpath,"sample-quast/report.html"),
-        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
+        expand(join(workpath,"stats_busco","{samples}.{assemblers}", "short_summary.specific."+Lineage_name+".{samples}.{assemblers}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
         join(workpath,"busco-summaries/busco_figure.png")
     output:
         "multiqc_report.html"
@@ -310,14 +310,13 @@ rule stats_busco:
     input:
         asm=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
     output:
-        ST=join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"),
+        ST=join(workpath,"stats_busco","{samples}.{assemblers}", "short_summary.specific."+Lineage_name+".{samples}.{assemblers}.txt"),
     params:
         rname="stats_busco",
         dir=directory(join(workpath, "stats_busco")), 
-        folder="{assemblers}_assembly",
+        folder="{samples}.{assemblers}",
         odb10_path = odb10_refs_path,
         link = busco_link,
-        s = "{samples}",
         Lineage_name = Lineage_name,
         Lineage_path = Lineage_path
     threads: 32
@@ -326,15 +325,15 @@ rule stats_busco:
         if [ ! -d "{params.Lineage_path}" ]; then cd {params.odb10_path}; 
         wget {params.link}; tar -xf {params.Lineage_name}; fi
         module load busco/4.0.2
-        mkdir -p {params.dir}/{params.folder}
-        cd {params.dir}/{params.folder}
-        busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.s}
+        mkdir -p {params.dir}
+        cd {params.dir}
+        busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
         """
 
 
 rule busco_summaries:
     input:
-        expand(join(workpath,"stats_busco","{assemblers}_assembly", "{samples}", "short_summary.specific."+Lineage_name+".{assemblers}.{samples}.txt"), assemblers=ASSEMBLER, Lineage_name=Lineage_name, samples=SAMPLE),
+        expand(join(workpath,"stats_busco","{samples}.{assemblers}", "short_summary.specific."+Lineage_name+".{samples}.{assemblers}.txt"), assemblers=ASSEMBLER, Lineage_name=Lineage_name, samples=SAMPLE),
     output:
         join(workpath,"busco-summaries/busco_figure.png"),
     params:
@@ -345,5 +344,5 @@ rule busco_summaries:
         module load busco/4.0.2
         mkdir -p {params.dir}
         cp {input} {params.dir}
-        python3 /usr/local/apps/busco/4.0.2/generate_plot.py -rt specific –wd {params.dir}
+        python3 /usr/local/apps/busco/4.0.2/generate_plot.py -rt specific --working_directory {params.dir}
         """
