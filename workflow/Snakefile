@@ -90,7 +90,7 @@ rule To_Fasta:
     params:
         rname="To_Fasta",
         samtools="samtools/1.9",
-        seqkit="seqkit/0.12.1",
+        seqkit="seqkit/2.2.0",
         dir=directory(join(workpath, "reads")),
         temp_ext = lambda w: ext[w.samples],
         FQ=join(workpath, "reads/{samples}.fastq")
@@ -130,17 +130,15 @@ rule raven_assembly:
         dir=directory(join(workpath, "raven_assembly")),
         gfa="{samples}.raven.gfa",
     #conda: "envs/raven-assembler.yaml"
+    container: config['images']['raven']
     threads: 32
     shell:
         """
-        source /data/NCBR/apps/genome-assembly/conda/etc/profile.d/conda.sh
-        conda activate raven-assembler
         mkdir -p {params.dir}
         cd {params.dir}
         #raven --threads {threads} {input} > {output.fa}
         raven --graphical-fragment-assembly {params.gfa} --threads {threads} {input}
         awk '$1 ~/S/ {{print ">"$2"\\n"$3}}' {output.gfa} > {output.fa}
-        conda deactivate
         """
 
 # rule wtdbg2_assembly:
