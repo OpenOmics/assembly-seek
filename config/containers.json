@@ -1,4 +1,5 @@
 {
     "images": {
+        "raven": "docker://asyakhleborodova/raven_assembly:v0.1.0"
     }
 }
