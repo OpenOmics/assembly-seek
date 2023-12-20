@@ -236,7 +236,7 @@ rule flye_assembly:
 
 rule hifiasm:
     input:
-        FA=join(workpath,"reads/{samples}.fasta"),
+        FA=join(rawdata_dir, "{samples}.fastq")
     output:
         GFA=join(workpath,"hifiasm_assembly/{samples}.bp.p_ctg.gfa"),
         FA=join(workpath,"hifiasm_assembly/{samples}.hifiasm.fasta"),
@@ -249,7 +249,8 @@ rule hifiasm:
     shell:
         """
         mkdir -p {params.dir}
-        {params.hifi}/hifiasm -o {params.dir}/{params.out} -t {threads} -f0 {input.FA}
+        module load hifiasm/0.19.8
+        hifiasm -o {params.dir}/{params.out} -t {threads} -f0 {input.FA}
         awk '/^S/{{print ">"$2;print $3}}' {output.GFA} > {output.FA}
         """
 
