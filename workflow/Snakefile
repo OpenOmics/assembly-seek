@@ -282,7 +282,7 @@ rule minimap2_overlaps:
     threads: 32
     shell:
         """
-        module load minimap2/2.17
+        module load minimap2
         mkdir -p {params.dir}
         minimap2 -t {threads} -x ava-pb {params.raw} {params.raw} > {params.ovlp}
         minimap2 -t {threads} -x ava-pb {params.raw} {input.A1} > {output.A1}
@@ -301,7 +301,7 @@ rule stats_quast:
     shell:
         """
         module unload python
-        module load quast/5.0.2
+        module load quast
         module load circos/0.69-9
         quast.py -o {params.dir} -t {threads} --circos -L {input.asm}
         """
@@ -322,14 +322,16 @@ rule stats_busco:
     threads: 32
     shell:
         """
-        if [ ! -d "{params.Lineage_path}" ]; then cd {params.odb10_path}; 
-        wget {params.link}; tar -xf {params.Lineage_name}; fi
-        module load busco/4.0.2
+        module load busco
         mkdir -p {params.dir}
         cd {params.dir}
-        busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
+        if [ ! -d "{params.Lineage_path}" ]; then
+            wget {params.link}; tar -xf {params.link}
+            busco --offline -m genome -l {params.Lineage_name} -c {threads} -i {input.asm} -f -o {params.folder}
+        else
+            busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
+        fi
         """
-
 
 rule busco_summaries:
     input:
