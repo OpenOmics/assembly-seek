@@ -76,7 +76,7 @@ rule All:
         rname="denovoAsm"
     shell:
         """
-        module load multiqc/1.8
+        module load multiqc
         multiqc .
         """
 
@@ -343,8 +343,8 @@ rule busco_summaries:
         dir=directory(join(workpath, "busco-summaries")),
     shell:
         """
-        module load busco/4.0.2
+        module load busco
         mkdir -p {params.dir}
         cp {input} {params.dir}
-        python3 /usr/local/apps/busco/4.0.2/generate_plot.py -rt specific --working_directory {params.dir}
+        generate_plot.py -rt specific --working_directory {params.dir}
         """
