@@ -325,10 +325,15 @@ rule stats_busco:
         module load busco
         mkdir -p {params.dir}
         cd {params.dir}
-        if [ ! -d "{params.Lineage_path}" ]; then
+        if [ ! -d "{params.Lineage_path}" && "{params.Lineage_name}" != "" ]; then
+            echo "downloading busco lineage to current working dir"
             wget {params.link}; tar -xf {params.link}
-            busco --offline -m genome -l {params.Lineage_name} -c {threads} -i {input.asm} -f -o {params.folder}
+            busco --offline -m genome -l {params.dir}/{params.Lineage_name} -c {threads} -i {input.asm} -f -o {params.folder}
+        elif [ "{params.Lineage_name}" == "" ]; then
+            echo "running busco without input database"
+            busco --offline -m genome -c {threads} -i {input.asm} -f -o {params.folder}
         else
+            echo "running busco with input database"
             busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
         fi
         """

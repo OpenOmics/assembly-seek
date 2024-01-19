@@ -270,7 +270,12 @@ def parsed_arguments(name, description):
                                 known as the pipeline's working directory. If the user
                                 provided working directory has not been initialized,
                                 it will be created automatically.
-                                  Example: --output /data/$USER/output
+                                  Example: --output /data/$USER/output 
+          --assemblers     
+                                Choose assemblers from the following default assemblers: 
+                                flye, raven, hifiasm.                        
+
+        {3}{4}Analysis options:{5}
           --genome-size
                                 Total DNA sequence of the organism in Mb or Gb. Required flag. 
                                   Example: --genome-size 23.5m
@@ -280,15 +285,14 @@ def parsed_arguments(name, description):
                                 disjointig assembly. Default coverage is 80.
                                   Example : --coverage 200
           --lineage-name        
-                                Busco database name, should be present/downloaded from 
-                                https://busco-archive.ezlab.org/data/lineages/ to odb10_refs_path 
-                                (see config.json for path). 
-          --assemblers     
-                                Choose assemblers from the following default assemblers: 
-                                flye, raven, hifiasm.                        
-
-        {3}{4}Analysis options:{5}
-          ...coming soon!
+                                  • If using this flag, provide lineage name 
+                                Example : --lineage-name diptera_odb10.
+                                See https://busco-archive.ezlab.org/data/lineages/ 
+                                for lineage names. Database for your lineage name either exists 
+                                in OpenOmics or it will be downloaded to /workpath/stats_busco.
+                                  • Without this flag, pipeline will runs using the eukaryota, bacteria, 
+                                archaea databases, and it does a quick blast to the other DBs to 
+                                find the closest database to run.
 
         {3}{4}Orchestration options:{5}
           --mode {{slurm,local}}  
@@ -424,7 +428,7 @@ def parsed_arguments(name, description):
     subparser_run.add_argument(
         '--genome-size',
         type = str,
-        required = True,
+        required = False,
         help = argparse.SUPPRESS
     ) 
 
@@ -439,7 +443,8 @@ def parsed_arguments(name, description):
     subparser_run.add_argument(
         '--lineage-name',
         type = str,
-        required = True,
+        required = False,
+        default = "",
         help = argparse.SUPPRESS
     )
 
