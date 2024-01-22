@@ -278,12 +278,15 @@ def parsed_arguments(name, description):
         {3}{4}Analysis options:{5}
           --genome-size
                                 Total DNA sequence of the organism in Mb or Gb. Required flag. 
+                                This option is used with flye assembler only.
                                   Example: --genome-size 23.5m
           --coverage             
                                 An approximate prior for expected aligned coverage used
                                 by flye. A subset of the longest reads for initial 
-                                disjointig assembly. Default coverage is 80.
-                                  Example : --coverage 200
+                                disjointig assembly. Default coverage is False.
+                                This option is used with flye assembler only, 
+                                --genome-size must be used with --coverage.
+                                  Example : --coverage 10
           --lineage-name        
                                   • If using this flag, provide lineage name 
                                 Example : --lineage-name diptera_odb10.
@@ -429,6 +432,7 @@ def parsed_arguments(name, description):
         '--genome-size',
         type = str,
         required = False,
+        default = "",
         help = argparse.SUPPRESS
     ) 
 
@@ -436,7 +440,7 @@ def parsed_arguments(name, description):
         '--coverage',
         type = int,
         required = False,
-        default = 80,
+        default = None,
         help = argparse.SUPPRESS
     )
 

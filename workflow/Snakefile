@@ -29,7 +29,7 @@ configfile: 'config.json'
 
 workpath = config["project"]["workpath"]
 Genome_size = config["options"]["genome_size"]
-Coverage = int(config["options"]["coverage"])
+Coverage = "" if config["options"]["coverage"] == "None" else int(config["options"]["coverage"])
 odb10_refs_path = config["odb10_refs_path"]
 Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
 Lineage_name = config["options"]["lineage_name"]
@@ -201,7 +201,9 @@ rule flye_assembly:
         rname="flye_assembly",
         flye="flye/2.9.1",
         id="{samples}",
-        dir= join(workpath,"flye_assembly")
+        dir= join(workpath,"flye_assembly"),
+        genome_size_flag= "--genome-size" if Genome_size != "" else "",
+        asm_coverage_flag= "--asm-coverage" if Coverage != "" else ""
     threads: 100
     shell:
         """
@@ -209,7 +211,9 @@ rule flye_assembly:
         mkdir -p {params.rname}
         cd /lscratch/$SLURM_JOBID
         mkdir -p {params.rname}/{params.id}
-        flye --threads {threads} --pacbio-hifi {input} --genome-size {Genome_size} --out-dir {params.rname}/{params.id} --asm-coverage {Coverage}
+        flye --threads {threads} \\
+        --pacbio-hifi {input} {params.genome_size_flag} {Genome_size} \\
+        --out-dir {params.rname}/{params.id} {params.asm_coverage_flag} {Coverage}
         mv /lscratch/$SLURM_JOBID/{params.rname}/{params.id} {params.dir}
         cd {params.dir}/{params.id}
         mv assembly.fasta {output}
