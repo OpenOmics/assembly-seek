@@ -270,25 +270,32 @@ def parsed_arguments(name, description):
                                 known as the pipeline's working directory. If the user
                                 provided working directory has not been initialized,
                                 it will be created automatically.
-                                  Example: --output /data/$USER/output
-          --genome-size
-                                Total DNA sequence of the organism in Mb or Gb. Required flag. 
-                                  Example: --genome-size 23.5m
-          --coverage             
-                                An approximate prior for expected aligned coverage used
-                                by flye. A subset of the longest reads for initial 
-                                disjointig assembly. Default coverage is 80.
-                                  Example : --coverage 200
-          --lineage-name        
-                                Busco database name, should be present/downloaded from 
-                                https://busco-archive.ezlab.org/data/lineages/ to odb10_refs_path 
-                                (see config.json for path). 
+                                  Example: --output /data/$USER/output 
           --assemblers     
                                 Choose assemblers from the following default assemblers: 
                                 flye, raven, hifiasm.                        
 
         {3}{4}Analysis options:{5}
-          ...coming soon!
+          --genome-size
+                                Total DNA sequence of the organism in Mb or Gb. Required flag. 
+                                This option is used with flye assembler only.
+                                  Example: --genome-size 23.5m
+          --coverage             
+                                An approximate prior for expected aligned coverage used
+                                by flye. A subset of the longest reads for initial 
+                                disjointig assembly. Default coverage is False.
+                                This option is used with flye assembler only, 
+                                --genome-size must be used with --coverage.
+                                  Example : --coverage 10
+          --lineage-name        
+                                  • If using this flag, provide lineage name 
+                                Example : --lineage-name diptera_odb10.
+                                See https://busco-archive.ezlab.org/data/lineages/ 
+                                for lineage names. Database for your lineage name either exists 
+                                in OpenOmics or it will be downloaded to /workpath/stats_busco.
+                                  • Without this flag, pipeline will runs using the eukaryota, bacteria, 
+                                archaea databases, and it does a quick blast to the other DBs to 
+                                find the closest database to run.
 
         {3}{4}Orchestration options:{5}
           --mode {{slurm,local}}  
@@ -424,7 +431,8 @@ def parsed_arguments(name, description):
     subparser_run.add_argument(
         '--genome-size',
         type = str,
-        required = True,
+        required = False,
+        default = "",
         help = argparse.SUPPRESS
     ) 
 
@@ -432,14 +440,15 @@ def parsed_arguments(name, description):
         '--coverage',
         type = int,
         required = False,
-        default = 80,
+        default = None,
         help = argparse.SUPPRESS
     )
 
     subparser_run.add_argument(
         '--lineage-name',
         type = str,
-        required = True,
+        required = False,
+        default = "",
         help = argparse.SUPPRESS
     )
 
