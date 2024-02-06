@@ -37,7 +37,7 @@ busco_links = config["busco_links"]
 filetype = config['efiletype']
 rawdata_dir = config['rawdata_dir']
 ext = config['extensions']
-
+tmpdir = config['options']['tmp_dir']        # Temporary directory
 
 SAMPLE = config["samples"]
 #ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
@@ -112,11 +112,31 @@ rule QualityCheck:
         PBqc=join(workpath, "{samples}_fastqc.html"),
     params:
         rname="fastQC",
+        tmpdir=tmpdir,
     threads: 32
     shell:
         """
+        # Setups temporary directory for
+        # intermediate files with built-in 
+        # mechanism for deletion on exit
+        if [ ! -d "{params.tmpdir}" ]; then mkdir -p "{params.tmpdir}"; fi
+        tmp=$(mktemp -d -p "{params.tmpdir}")
+        trap 'rm -rf "${{tmp}}"' EXIT
+
+        # Running fastqc with local
+        # disk or a tmpdir, fastqc
+        # has been observed to lock
+        # up gpfs filesystems, adding
+        # this on request by HPC staff
         module load python/3.7 fastqc samtools
-        fastqc --threads {threads} {input.CCS} -o {workpath}
+        fastqc --threads {threads} {input.CCS} -o "${{tmp}}"
+        
+        # Copy output files from tmpdir
+        # to output directory
+        find "${{tmp}}" \\
+            -type f \\
+            \\( -name '*.html' -o -name '*.zip' \\) \\
+            -exec cp {{}} {workpath} \\;
         """    
 
 rule raven_assembly:
