@@ -1,18 +1,10 @@
-
-###########################################################################
-# Long read (PacBio) denovo genome assembly
-# Snakemake/5.13.0
-###########################################################################
 # Python standard library
 from os.path import join
 from os import listdir
-import os, sys, re
-import pandas as pd
+import os, sys, re, json
 
 # 3rd party imports from pypi
-from snakemake.workflow import workflow as wf_api
-from snakemake.utils import R
-from snakemake.io import expand, glob_wildcards
+from snakemake.io import expand
 
 # Local imports
 from scripts.common import (
@@ -20,54 +12,95 @@ from scripts.common import (
     provided,
     references,
     str_bool,
-    check_readaccess,
     identify_samples_as_bam_fastq
 )
 
 
+# Global workflow variables
 configfile: 'config.json'
+SAMPLE          = config["samples"]                      # List: Base name of input samples
+ASSEMBLER       = config["options"]["assemblers"]        # List: Assemblers to use, default: ["flye", "raven", "hifiasm"]
+workpath        = config["project"]["workpath"]          # Pipeline's output directory
+Genome_size     = config["options"]["genome_size"]       # Estimated genome size for Flye assembler
+busco_links     = config["busco_links"]                  # Dict: Lineage to busco download link mappings
+Lineage_name    = config["options"]["lineage_name"]      # Busco linage name
+odb10_refs_path = config["odb10_refs_path"]              # Base path to locally downloaded Busco lineages
+filetype        = config['efiletype']                    # File type of all samples
+ext             = config['extensions']                   # Dict: Sample to filetype mappings, where: gz=fastq.gz, bam=bam
+tmpdir          = config['options']['tmp_dir']           # Temporary directory, default: /lscratch/$SLURM_JOBID
 
-workpath = config["project"]["workpath"]
-Genome_size = config["options"]["genome_size"]
-Coverage = "" if config["options"]["coverage"] == "None" else int(config["options"]["coverage"])
-odb10_refs_path = config["odb10_refs_path"]
-Lineage_path = join(odb10_refs_path, config["options"]["lineage_name"])
-Lineage_name = config["options"]["lineage_name"]
-busco_links = config["busco_links"]
-filetype = config['efiletype']
-rawdata_dir = config['rawdata_dir']
-ext = config['extensions']
-tmpdir = config['options']['tmp_dir']        # Temporary directory
+# Flye coverage option to reduce memory 
+# usage of initial disjointig assembly 
+Coverage = "" if config["options"]["coverage"] == "None" \
+else int(config["options"]["coverage"])
 
-SAMPLE = config["samples"]
-ASSEMBLER = config["options"]["assemblers"]
-exten=["fasta", "fa"]
-
-if os.path.exists(Lineage_path):
-    check_readaccess(Lineage_path)
-    busco_link = ""
-else:
+# Local path to Busco lineage database
+Lineage_path = join(odb10_refs_path, Lineage_name) if Lineage_name else ""
+busco_link = ""  # Busco lineage download link
+if not os.access(Lineage_path, os.R_OK) and Lineage_name:
+    # Busco lineage database does not
+    # exist locally or it cannot be 
+    # accessed due to bad permissions
     try:
+        # Check if download link available
         busco_link = busco_links[Lineage_name]
     except KeyError:
-        sys.exit("""Fatal Error: No {} database exists, please use of the existing databases: 
-        https://busco-archive.ezlab.org/data/lineages/""".format(Lineage_name))    
+        # We don't have a download URL for
+        # this specific lineage, could be 
+        # due to Busco updating the lineages
+        # on their side and our internal index
+        # is out of date or the user provided
+        # something that does not exist. 
+        sys.exit(
+            "Fatal Error: Unsupported {0} database, please use one of the following databases:\n".format(Lineage_name),
+            "https://busco-archive.ezlab.org/data/lineages/\n",
+            "If this database does exist, our index maybe out of date! Please contact a maintainer of the pipeline."
+        )
 
-rule All:
+# Read in resource information,
+# containing information about 
+# threads, mem, walltimes, etc.
+# TODO: Add handler for when the
+# mode is set to local.
+with open(join('config', 'cluster.json')) as fh:
+    cluster = json.load(fh)
+
+
+# Targets of the PacBio de novo assembly pipeline
+rule all:
     input:
-        # Converting BAM to Fastq to Fasta
-        expand(join(workpath,"reads/{samples}.fastq"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[0]),
-        expand(join(workpath,"reads/{samples}.fasta"), samples=SAMPLE),
-        expand(join(workpath, "{samples}_fastqc.html"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[1]),
-        expand(join(workpath,"{assemblers}_assembly/{samples}.{assemblers}.fasta"), samples=SAMPLE, assemblers=ASSEMBLER),
-
-        # Gather assemblies in a directory
-        expand(join(workpath,"all-assemblies/{samples}.{assemblers}.fasta"), samples=SAMPLE, assemblers=ASSEMBLER),
-        expand(join(workpath, "minimap2_overlaps/{samples}.{assemblers}-contig-overlap.paf"),samples=SAMPLE, assemblers=ASSEMBLER),
-      
-        # Quast - assembly statistics without reference
+        # Converting BAM files to FastQ/FASTA format
+        expand(
+            join(workpath,"reads", "{samples}.fastq.gz"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[0]
+        ),
+        expand(
+            join(workpath,"reads", "{samples}.fasta"), samples=SAMPLE
+        ),
+        # FastQC, assess sequencing quality
+        expand(
+            join(workpath, "{samples}_fastqc.html"), samples = identify_samples_as_bam_fastq(SAMPLE, ext)[1]
+        ),
+        # De novo genome assemblies: "flye", "raven", "hifiasm".
+        expand(
+            join(workpath,"{assemblers}_assembly/{samples}.{assemblers}.fasta"), 
+            samples=SAMPLE, 
+            assemblers=ASSEMBLER
+        ),
+        # Gather and reformat assemblies
+        expand(
+            join(workpath,"all-assemblies/{samples}.{assemblers}.fasta"),
+            samples=SAMPLE,
+            assemblers=ASSEMBLER
+        ),
+        # Quast, assess quality of assemblies
         join(workpath,"sample-quast/report.html"),
-        expand(join(workpath,"stats_busco","{samples}.{assemblers}", "short_summary.specific."+Lineage_name+".{samples}.{assemblers}.txt"), samples = SAMPLE, assemblers=ASSEMBLER, Lineage_name=Lineage_name),
+        # Busco, assess completeness and quality of assemblies
+        expand(
+            join(workpath,"stats_busco","{samples}.{assemblers}","short_summary.specific." + Lineage_name + ".{samples}.{assemblers}.txt"),
+            samples = SAMPLE,
+            assemblers=ASSEMBLER,
+            Lineage_name=Lineage_name
+        ),
         join(workpath,"busco-summaries/busco_figure.png")
     output:
         "multiqc_report.html"
@@ -79,32 +112,46 @@ rule All:
         multiqc .
         """
 
-rule To_Fasta:
+
+rule bam2fastq:
     input:
-        file = lambda w: join(workpath, w.samples +".bam") \
-        if ext[w.samples]=="bam" else join(workpath, w.samples+".fastq.gz")
+        bam   = join(workpath, "{samples}.bam"),
     output:
-        #FQ=join(workpath, "reads/{samples}.fastq"),
-        FA=join(workpath, "reads/{samples}.fasta")
+        fastq = join(workpath, "reads", "{samples}.fastq.gz"),
     params:
-        rname="To_Fasta",
-        samtools="samtools/1.9",
-        seqkit="seqkit/2.2.0",
-        dir=directory(join(workpath, "reads")),
-        temp_ext = lambda w: ext[w.samples],
-        FQ=join(workpath, "reads/{samples}.fastq.gz")
+        rname    = "bam2fastq",
+        samtools = "samtools/1.9",
     shell:
         """
         module load {params.samtools}
-        module load {params.seqkit}
-        mkdir -p {params.dir}
-        if [ "{params.temp_ext}" == "bam" ]; then 
-            samtools fastq {input.file} | gzip - > {params.FQ};
-            seqkit fq2fa --line-width 0 {params.FQ} -o {output.FA};
-        else
-            seqkit fq2fa --line-width 0 {input.file} -o {output.FA};
-        fi
+        # Convert BAM to FastQ format
+        samtools fastq {input.bam} \\
+            | gzip - \\
+        > {output.fastq};
         """
+
+
+rule fastq2fasta:
+    input:
+        fastq = lambda w: join(workpath, "reads", w.samples+".fastq.gz") if ext[w.samples]=="bam" \
+        else \
+        join(workpath, w.samples+".fastq.gz"),
+    output:
+        fasta = join(workpath, "reads", "{samples}.fasta"),
+    params:
+        rname="fq2fa",
+        seqkit="seqkit/2.2.0",
+    shell:
+        """
+        module load {params.seqkit}
+        # Convert FastQ to FASTA format,
+        # outputs a file with no line wrap
+        seqkit fq2fa \\
+            --line-width 0 \\
+            {input.fastq} \\
+            -o {output.fasta}
+        """
+
 
 rule QualityCheck:
     input:
@@ -130,7 +177,10 @@ rule QualityCheck:
         # up gpfs filesystems, adding
         # this on request by HPC staff
         module load python/3.7 fastqc samtools
-        fastqc --threads {threads} {input.CCS} -o "${{tmp}}"
+        fastqc \\
+            --threads {threads} \\
+            {input.CCS} \\
+            -o "${{tmp}}"
         
         # Copy output files from tmpdir
         # to output directory
@@ -139,6 +189,7 @@ rule QualityCheck:
             \\( -name '*.html' -o -name '*.zip' \\) \\
             -exec cp {{}} {workpath} \\;
         """    
+
 
 rule raven_assembly:
     input:
@@ -157,9 +208,13 @@ rule raven_assembly:
         """
         mkdir -p {params.dir}
         cd {params.dir}
-        #raven --threads {threads} {input} > {output.fa}
-        raven --graphical-fragment-assembly {params.gfa} --threads {threads} {input}
-        awk '$1 ~/S/ {{print ">"$2"\\n"$3}}' {output.gfa} > {output.fa}
+        raven \\
+            --graphical-fragment-assembly {params.gfa} \\
+            --threads {threads} \\
+            {input}
+        awk '$1 ~/S/ {{print ">"$2"\\n"$3}}' \\
+            {output.gfa} \\
+        > {output.fa}
         """
 
 # rule wtdbg2_assembly:
@@ -232,9 +287,10 @@ rule flye_assembly:
         mkdir -p {params.rname}
         cd /lscratch/$SLURM_JOBID
         mkdir -p {params.rname}/{params.id}
-        flye --threads {threads} \\
-        --pacbio-hifi {input} {params.genome_size_flag} {Genome_size} \\
-        --out-dir {params.rname}/{params.id} {params.asm_coverage_flag} {Coverage}
+        flye \\
+            --threads {threads} \\
+            --pacbio-hifi {input} {params.genome_size_flag} {Genome_size} \\
+            --out-dir {params.rname}/{params.id} {params.asm_coverage_flag} {Coverage}
         mv /lscratch/$SLURM_JOBID/{params.rname}/{params.id} {params.dir}
         cd {params.dir}/{params.id}
         mv assembly.fasta {output}
@@ -261,7 +317,9 @@ rule flye_assembly:
 
 rule hifiasm:
     input:
-        FA=join(workpath, "{samples}.fastq.gz")
+        fastq = lambda w: join(workpath, "reads", w.samples+".fastq.gz") if ext[w.samples]=="bam" \
+        else \
+        join(workpath, w.samples+".fastq.gz"),
     output:
         GFA=join(workpath,"hifiasm_assembly/{samples}.bp.p_ctg.gfa"),
         FA=join(workpath,"hifiasm_assembly/{samples}.hifiasm.fasta"),
@@ -275,8 +333,13 @@ rule hifiasm:
         """
         mkdir -p {params.dir}
         module load hifiasm/0.19.8
-        hifiasm -o {params.dir}/{params.out} -t {threads} -f0 {input.FA}
-        awk '/^S/{{print ">"$2;print $3}}' {output.GFA} > {output.FA}
+        hifiasm \\
+            -o {params.dir}/{params.out} \\
+            -t {threads} \\
+            -f0 {input.fastq}
+        awk '/^S/{{print ">"$2;print $3}}' \\
+            {output.GFA} \\
+        > {output.FA}
         """
 
 rule gather_assemblies:
@@ -294,24 +357,24 @@ rule gather_assemblies:
         sed -i 's/\//_/g' {output.A1}
         """
 
-rule minimap2_overlaps:
-    input:
-        A1=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
-    output:
-        A1=join(workpath,"minimap2_overlaps/{samples}.{assemblers}-contig-overlap.paf")
-    params:
-        rname="minimap2_overlaps",
-        raw=join(workpath, "reads/{samples}.fasta"),
-        ovlp=join(workpath,"minimap2_overlaps/{samples}.read-read-overlap.paf"),
-        dir=join(workpath,"minimap2_overlaps")
-    threads: 32
-    shell:
-        """
-        module load minimap2
-        mkdir -p {params.dir}
-        minimap2 -t {threads} -x ava-pb {params.raw} {params.raw} > {params.ovlp}
-        minimap2 -t {threads} -x ava-pb {params.raw} {input.A1} > {output.A1}
-        """
+# rule minimap2_overlaps:
+#     input:
+#         A1=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),
+#     output:
+#         A1=join(workpath,"minimap2_overlaps/{samples}.{assemblers}-contig-overlap.paf")
+#     params:
+#         rname="minimap2_overlaps",
+#         raw=join(workpath, "reads/{samples}.fasta"),
+#         ovlp=join(workpath,"minimap2_overlaps/{samples}.read-read-overlap.paf"),
+#         dir=join(workpath,"minimap2_overlaps")
+#     threads: 32
+#     shell:
+#         """
+#         module load minimap2
+#         mkdir -p {params.dir}
+#         minimap2 -t {threads} -x ava-pb {params.raw} {params.raw} > {params.ovlp}
+#         minimap2 -t {threads} -x ava-pb {params.raw} {input.A1} > {output.A1}
+#         """
 
 rule stats_quast:
     input:
@@ -328,7 +391,11 @@ rule stats_quast:
         module unload python
         module load quast
         module load circos/0.69-9
-        quast.py -o {params.dir} -t {threads} --circos -L {input.asm}
+        quast.py \\
+            -o {params.dir} \\
+            -t {threads} \\
+            --circos \\
+            -L {input.asm}
         """
 
 
@@ -352,18 +419,35 @@ rule stats_busco:
         module load busco
         mkdir -p {params.dir}
         cd {params.dir}
-        if [ ! -d "{params.Lineage_path}" && "{params.Lineage_name}" != "" ]; then
+        if [ ! -d "{params.Lineage_path}" ] && [ "{params.Lineage_name}" != "" ]; then
             echo "downloading busco lineage to current working dir"
             wget {params.link}; tar -xf {params.link}
-            busco --offline -m genome -l {params.dir}/{params.Lineage_name} -c {threads} -i {input.asm} -f -o {params.folder}
+            busco --offline \\
+                -m genome \\
+                -l {params.dir}/{params.Lineage_name} \\
+                -c {threads} \\
+                -i {input.asm} \\
+                -f -o {params.folder}
         elif [ "{params.Lineage_name}" == "" ]; then
             echo "running busco without input database"
-            busco --offline -m genome -c {threads} -i {input.asm} -f -o {params.folder}
+            busco \\
+                --offline \\
+                -m genome \\
+                -c {threads} \\
+                -i {input.asm} \\
+                -f -o {params.folder}
         else
             echo "running busco with input database"
-            busco --offline -m genome -l {params.Lineage_path} -c {threads} -i {input.asm} -f -o {params.folder}
+            busco \\
+                --offline \\
+                -m genome \\
+                -l {params.Lineage_path} \\
+                -c {threads} \\
+                -i {input.asm} \\
+                -f -o {params.folder}
         fi
         """
+
 
 rule busco_summaries:
     input:
@@ -378,5 +462,7 @@ rule busco_summaries:
         module load busco
         mkdir -p {params.dir}
         cp {input} {params.dir}
-        generate_plot.py -rt specific --working_directory {params.dir}
+        generate_plot.py \\
+            -rt specific \\
+            --working_directory {params.dir}
         """
