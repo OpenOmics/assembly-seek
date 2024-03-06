@@ -2,7 +2,7 @@
 import sys, os
 
 def identify_samples_as_bam_fastq(samplelist, condition):
-    '''
+    """
     From sample names determines which of the input files have bam or fastq extensions.
     Pipeline uses this function's output to do quality check on fastqs
     and to convert bams to fastqs.
@@ -14,18 +14,19 @@ def identify_samples_as_bam_fastq(samplelist, condition):
         List of --input samples that have bam extension
     @return fastq_samples list[<str>]:
         List of --input samples that have fastq extension
-    '''
+    """
     bam_samples = []
     fastq_samples = []
-    for i in samplelist:
-        if condition[i] == "bam":
-            bam_samples.append(i)
-        elif condition[i] == "fastq":
-            fastq_samples.append(i)
+    for sample in samplelist:
+        if condition[sample] == "bam":
+            bam_samples.append(sample)
+        elif condition[sample] == "gz":
+            fastq_samples.append(sample)
         else:
-            sys.exit("Pipeline is not currently set up to process --input with {} extensions, use either bam or fastq files!".format(condition[i]))
+            sys.exit("Pipeline is not currently set up to process --input with {0} extensions, use either bam or fastq files!".format(condition[sample]))
 
     return bam_samples, fastq_samples
+
 
 def provided(samplelist, condition):
     """

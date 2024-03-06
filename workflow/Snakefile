@@ -40,7 +40,6 @@ ext = config['extensions']
 tmpdir = config['options']['tmp_dir']        # Temporary directory
 
 SAMPLE = config["samples"]
-#ASSEMBLER = ["canu", "flye", "raven", "wtdbg2", "minipolish"]
 ASSEMBLER = config["options"]["assemblers"]
 exten=["fasta", "fa"]
 
@@ -82,8 +81,8 @@ rule All:
 
 rule To_Fasta:
     input:
-        file = lambda w: join(rawdata_dir, w.samples +".bam") \
-        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
+        file = lambda w: join(workpath, w.samples +".bam") \
+        if ext[w.samples]=="bam" else join(workpath, w.samples+".fastq.gz")
     output:
         #FQ=join(workpath, "reads/{samples}.fastq"),
         FA=join(workpath, "reads/{samples}.fasta")
@@ -93,21 +92,23 @@ rule To_Fasta:
         seqkit="seqkit/2.2.0",
         dir=directory(join(workpath, "reads")),
         temp_ext = lambda w: ext[w.samples],
-        FQ=join(workpath, "reads/{samples}.fastq")
+        FQ=join(workpath, "reads/{samples}.fastq.gz")
     shell:
         """
         module load {params.samtools}
         module load {params.seqkit}
         mkdir -p {params.dir}
-        if [ "{params.temp_ext}" == "bam" ]; 
-        then samtools fastq {input.file} > {params.FQ};
-        seqkit fq2fa --line-width 0 {params.FQ} -o {output.FA};
-        else seqkit fq2fa --line-width 0 {input.file} -o {output.FA}; fi
+        if [ "{params.temp_ext}" == "bam" ]; then 
+            samtools fastq {input.file} | gzip - > {params.FQ};
+            seqkit fq2fa --line-width 0 {params.FQ} -o {output.FA};
+        else
+            seqkit fq2fa --line-width 0 {input.file} -o {output.FA};
+        fi
         """
 
 rule QualityCheck:
     input:
-        CCS=join(rawdata_dir, "{samples}.fastq"),
+        CCS=join(workpath, "{samples}.fastq.gz"),
     output:
         PBqc=join(workpath, "{samples}_fastqc.html"),
     params:
@@ -213,8 +214,8 @@ rule raven_assembly:
 
 rule flye_assembly:
     input:
-        fastq_file = lambda w: join(workpath,"reads", w.samples+".fastq") \
-        if ext[w.samples]=="bam" else join(rawdata_dir, w.samples+".fastq")
+        file = lambda w: join(workpath,"reads", w.samples+".fasta") \
+        if ext[w.samples]=="bam" else join(workpath, w.samples+".fastq.gz")
     output:
         join(workpath,"flye_assembly/{samples}.flye.fasta")
     params:
@@ -260,7 +261,7 @@ rule flye_assembly:
 
 rule hifiasm:
     input:
-        FA=join(rawdata_dir, "{samples}.fastq")
+        FA=join(workpath, "{samples}.fastq.gz")
     output:
         GFA=join(workpath,"hifiasm_assembly/{samples}.bp.p_ctg.gfa"),
         FA=join(workpath,"hifiasm_assembly/{samples}.hifiasm.fasta"),
@@ -329,6 +330,8 @@ rule stats_quast:
         module load circos/0.69-9
         quast.py -o {params.dir} -t {threads} --circos -L {input.asm}
         """
+
+
 rule stats_busco:
     input:
         asm=join(workpath, "all-assemblies/{samples}.{assemblers}.fasta"),

@@ -4,15 +4,17 @@
 # Python standard library
 from __future__ import print_function
 from shutil import copytree
-import os, re, json, sys, subprocess
+import os, re, json, sys, subprocess, textwrap
 
 # Local imports
-from utils import (git_commit_hash,
+from utils import (
+    git_commit_hash,
     join_jsons,
     fatal,
     which,
     exists,
-    err)
+    err
+)
 
 from . import version as __version__
 
@@ -100,7 +102,7 @@ def sym_safe(input_data, target):
 
 
 def rename(filename):
-    """Dynamically renames FastQ file to have one of the following extensions: *.R1.fastq.gz, *.R2.fastq.gz
+    """Dynamically renames FastQ file to have one of the following extensions: *.fastq.gz
     To automatically rename the fastq files, a few assumptions are made. If the extension of the
     FastQ file cannot be infered, an exception is raised telling the user to fix the filename
     of the fastq files.
@@ -112,19 +114,11 @@ def rename(filename):
     # Covers common extensions from SF, SRA, EBI, TCGA, and external sequencing providers
     # key = regex to match string and value = how it will be renamed
     extensions = {
-        # Matches: _R[12]_fastq.gz, _R[12].fastq.gz, _R[12]_fq.gz, etc.
-        ".R1.f(ast)?q.gz$": ".R1.fastq.gz",
-        ".R2.f(ast)?q.gz$": ".R2.fastq.gz",
-        # Matches: _R[12]_001_fastq_gz, _R[12].001.fastq.gz, _R[12]_001.fq.gz, etc.
-        # Capture lane information as named group
-        ".R1.(?P<lane>...).f(ast)?q.gz$": ".R1.fastq.gz",
-        ".R2.(?P<lane>...).f(ast)?q.gz$": ".R2.fastq.gz",
-        # Matches: _[12].fastq.gz, _[12].fq.gz, _[12]_fastq_gz, etc.
-        "_1.f(ast)?q.gz$": ".R1.fastq.gz",
-        "_2.f(ast)?q.gz$": ".R2.fastq.gz"
+        # Matches: _fastq.gz, .fastq.gz, _fq.gz, etc.
+        ".f(ast)?q.gz$": ".fastq.gz"
     }
 
-    if (filename.endswith('.fastq') or
+    if (filename.endswith('.fastq.gz') or
         filename.endswith('.bam')):
         # Filename is already in the correct format
         return filename
@@ -139,19 +133,32 @@ def rename(filename):
             break # only rename once
 
     if not converted:
-        raise NameError("""\n\tFatal: Failed to rename provided input '{}'!
-        Cannot determine the extension of the user provided input file.
-        Please rename the file list above before trying again.
-        Here is example of acceptable input file extensions:
-          sampleName.R1.fastq.gz      sampleName.R2.fastq.gz
-          sampleName_R1_001.fastq.gz  sampleName_R2_001.fastq.gz
-          sampleName_1.fastq.gz       sampleName_2.fastq.gz
-        Please also check that your input files are gzipped?
-        If they are not, please gzip them before proceeding again.
-        """.format(filename, sys.argv[0])
+        fatal(
+            textwrap.dedent(
+                """
+                Fatal: Failed to rename provided input '{0}'!
+                Cannot determine the extension of the user provided input file.
+                Please rename the file listed above before trying again. 
+                
+                Input files must end with one of the following extensions:
+                  - *.fastg.gz 
+                  - *.bam
+
+                Here is example of acceptable input file names:
+                  @FastQ files              @BAM files
+                   - sampleA.fastq.gz        - sampleA.bam
+                   - sampleB_S2.fastq.gz     - sampleB_S2.bam
+                   - sampleC_003.fastq.gz    - sampleC_003.bam
+                   - sampleD_grpX.fastq.gz   - sampleD_grpX.bam
+
+                Also, please also check that your input files are gzipped?
+                If they are not, please gzip them before proceeding again.
+                """.format(filename)
+            )
         )
 
     return filename
+
 
 def get_file_extensions(input_files):
     """
@@ -159,16 +166,19 @@ def get_file_extensions(input_files):
     as key value pair.
     @params input_files list[<str>]:
         List containing user-provided input fastq or bam files
-    @return bindpaths <dict>:
+    @return sample2extension <dict>:
         {file_name: file_extension}
     """
-    extensions = {}
+    sample2extension = {}
+    
     for file in input_files:
-        k = os.path.basename(file)[:os.path.basename(file).rfind(".")]
-        v = os.path.basename(file)[os.path.basename(file).rfind(".")+1:]
-        extensions[k] = v
-        
-    return extensions
+        bn = rename(os.path.basename(file))
+        ext = bn.split('.')[-1]
+        sample = re.sub('\.bam$|\.fastq.gz$', '', bn)
+        sample2extension[sample] = ext
+
+    return sample2extension
+
 
 def setup(sub_args, ifiles, repo_path, output_path):
     """Setup the pipeline for execution and creates config file from templates
@@ -379,7 +389,7 @@ def mixed_inputs(ifiles):
     fastqs = False
     bams = False
     for file in ifiles:
-        if file.endswith('.R1.fastq.gz') or file.endswith('.R2.fastq.gz'):
+        if file.endswith('.fastq.gz'):
             fastqs = True 
             fq_files.append(file)
         elif file.endswith('.bam'):
@@ -448,7 +458,7 @@ def add_sample_metadata(input_files, config, group=None):
     config['samples'] = []
     for file in input_files:
         # Split sample name on file extension
-        sample = re.sub('\.bam$|\.fastq$', '', os.path.basename(file))
+        sample = re.sub('\.bam$|\.fastq.gz$', '', os.path.basename(file))
         if sample not in added:
             # Only add PE sample information once
             added.append(sample)
@@ -459,9 +469,6 @@ def add_sample_metadata(input_files, config, group=None):
 
 def add_rawdata_information(sub_args, config, ifiles):
     """Adds information about rawdata provided to pipeline.
-    Determines whether the dataset is paired-end or single-end and finds the set of all
-    rawdata directories (needed for -B option when running singularity). If a user provides
-    paired-end data, checks to see if both mates (R1 and R2) are present for each sample.
     @param sub_args <parser.parse_args() object>:
         Parsed arguments for run sub-command
     @params ifiles list[<str>]:
@@ -476,7 +483,7 @@ def add_rawdata_information(sub_args, config, ifiles):
     # or single-end
     # Updates config['project']['nends'] where
     # 1 = single-end, 2 = paired-end, -1 = bams
-    convert = {1: 'single-end', 2: 'paired-end', -1: 'bam'}
+    # convert = {1: 'single-end', 2: 'paired-end', -1: 'bam'}
     # nends = get_nends(ifiles)  # Checks PE data for both mates (R1 and R2)
     # config['project']['nends'] = nends
     # config['project']['filetype'] = convert[nends]

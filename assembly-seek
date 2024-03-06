@@ -32,7 +32,7 @@ EXAMPLE:
 
 # Python standard library
 from __future__ import print_function
-import sys, os, subprocess, re, json, textwrap
+import sys, os, subprocess, json, textwrap
 
 # 3rd party imports from pypi
 import argparse  # potential python3 3rd party package, added in python/3.5
@@ -40,7 +40,6 @@ import argparse  # potential python3 3rd party package, added in python/3.5
 # Local imports
 from src import version 
 from src.run import init, setup, bind, dryrun, runner
-from src.shells import bash 
 from src.utils import (
     Colors,
     err,
@@ -246,6 +245,10 @@ def parsed_arguments(name, description):
                 [--dry-run] [--job-name JOB_NAME] [--mode {{slurm,local}}] \\
                 [--sif-cache SIF_CACHE] [--singularity-cache SINGULARITY_CACHE] \\
                 [--silent] [--threads THREADS] [--tmp-dir TMP_DIR] \\
+                [--assemblers flye raven hifiasm] \\
+                [--genome-size GENOME_SIZE] \\
+                [--coverage COVERAGE] \\
+                [--lineage-name LINEAGE_NAME] \\
                 --input INPUT [INPUT ...] \\
                 --output OUTPUT
 
@@ -263,39 +266,56 @@ def parsed_arguments(name, description):
                                 samples can be provided. Multiple input FastQ files
                                 should be seperated by a space. Globbing for multiple
                                 file is also supported.
-                                  Example: --input .tests/*.R?.fastq.gz
+                                  • Example: --input .tests/*.R?.fastq.gz
           --output OUTPUT
                                 Path to an output directory. This location is where
                                 the pipeline will create all of its output files, also
                                 known as the pipeline's working directory. If the user
                                 provided working directory has not been initialized,
                                 it will be created automatically.
-                                  Example: --output /data/$USER/output 
-          --assemblers     
-                                Choose assemblers from the following default assemblers: 
-                                flye, raven, hifiasm.                        
+                                  • Example: --output /data/$USER/output                 
 
         {3}{4}Analysis options:{5}
-          --genome-size
-                                Total DNA sequence of the organism in Mb or Gb. Required flag. 
-                                This option is used with flye assembler only.
-                                  Example: --genome-size 23.5m
-          --coverage             
-                                An approximate prior for expected aligned coverage used
-                                by flye. A subset of the longest reads for initial 
-                                disjointig assembly. Default coverage is False.
-                                This option is used with flye assembler only, 
-                                --genome-size must be used with --coverage.
-                                  Example : --coverage 10
-          --lineage-name        
-                                  • If using this flag, provide lineage name 
-                                Example : --lineage-name diptera_odb10.
-                                See https://busco-archive.ezlab.org/data/lineages/ 
-                                for lineage names. Database for your lineage name either exists 
-                                in OpenOmics or it will be downloaded to /workpath/stats_busco.
-                                  • Without this flag, pipeline will runs using the eukaryota, bacteria, 
-                                archaea databases, and it does a quick blast to the other DBs to 
-                                find the closest database to run.
+          --assemblers ASSEMBLER [ASSEMBLER ...]
+                                Genome assembler(s). A list of de novo long read genome 
+                                assemblers to use. Please choose from the following list
+                                of supported assemblers: ["flye", "raven", "hifiasm"],
+                                default: ["flye", "raven", "hifiasm"].
+                                  • Example: --assemblers flye raven
+                                           
+          --genome-size GENOME_SIZE
+                                Estimated genome size. This is the estimated size of the
+                                organism's genome in Mb or Gb. This option is used with
+                                flye assembler only. Please note: this option MUST be used
+                                with the "--coverage" option (see below). Default: None.
+                                  • Example: --genome-size 23.5m
+        
+          --coverage COVERAGE         
+                                Reduces coverage for initial assembly. Typically, assemblies 
+                                of large genomes at high coverage require several hundreds of
+                                RAM. For high coverage datasets, you can reduce memory usage
+                                by using only a subset of longest reads for initial disjointig
+                                extension stage (which is usually the memory bottleneck). This
+                                option specifies the target coverage of the longest reads. It
+                                is worth noting that setting this option to 40 is usually enough
+                                to produce good disjointigs. Regardless of how this option is
+                                set, all reads will be used at the later pipeline stages (e.g.
+                                for repeat resolution). This option is used with the flye
+                                assembler only. Please note: this option MUST be used with the
+                                "--genome-size" option. Default: None.
+                                  • Example: --coverage 20
+        
+          --lineage-name LINEAGE_NAME
+                                Busco lineage name. This option can be provided to specify
+                                the name of the BUSCO lineage to be used. If provided, please
+                                provide a valid busco lineage name from the following link:
+                                  https://busco-archive.ezlab.org/data/lineages/ 
+                                If the provided database for your lineage name does not exist
+                                locally, it will be downloaded into your output directory. By 
+                                default, the pipeline will run using busco's auto-lineage
+                                option to find the closest lineage in its eukaryota, bacteria, 
+                                and archaea databases.
+                                  • Example: --lineage-name diptera_odb10  
 
         {3}{4}Orchestration options:{5}
           --mode {{slurm,local}}  
@@ -381,7 +401,7 @@ def parsed_arguments(name, description):
           module load singularity snakemake
 
           # Step 2A.) Dry-run the pipeline
-          ./{0} run --input .tests/*.R?.fastq.gz \\
+          ./{0} run --input .tests/*.fastq.gz \\
                          --output /data/$USER/output \\
                          --mode slurm \\
                          --dry-run
@@ -390,7 +410,7 @@ def parsed_arguments(name, description):
           # The slurm mode will submit jobs to 
           # the cluster. It is recommended running 
           # the pipeline in this mode.
-          ./{0} run --input .tests/*.R?.fastq.gz \\
+          ./{0} run --input .tests/*.fastq.gz \\
                          --output /data/$USER/output \\
                          --mode slurm
 
@@ -428,13 +448,14 @@ def parsed_arguments(name, description):
         help = argparse.SUPPRESS
     )
 
+    # Analysis options
     subparser_run.add_argument(
         '--genome-size',
         type = str,
         required = False,
         default = "",
         help = argparse.SUPPRESS
-    ) 
+    )
 
     subparser_run.add_argument(
         '--coverage',
@@ -466,9 +487,6 @@ def parsed_arguments(name, description):
         action='help', 
         help=argparse.SUPPRESS
     )
-    
-    # Analysis options
-    # ... add here
 
     # Orchestration Options
     # Execution Method, run locally 
