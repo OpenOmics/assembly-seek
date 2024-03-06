@@ -15,14 +15,23 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - uses: docker://snakemake/snakemake:v5.24.2
-    - name: Dry Run with test data
+    - name: Dry Run with FastQ files
       run: |
         docker run -v $PWD:/opt2 snakemake/snakemake:v5.24.2 \
         /opt2/assembly-seek run --input \
-        /opt2/.tests/WT_S1.R1.fastq /opt2/.tests/WT_S1.R2.fastq \
-        /opt2/.tests/WT_S2_R1.fastq /opt2/.tests/WT_S2_R2.fastq \
-        /opt2/.tests/WT_S3_1.fastq /opt2/.tests/WT_S3_2.fastq \
-        /opt2/.tests/WT_S4_R1.001.fastq /opt2/.tests/WT_S4_R2.001.fastq \
+        /opt2/.tests/WT_S1.fastq.gz \
+        /opt2/.tests/WT_S2.fastq.gz \
+        /opt2/.tests/WT_S3_1.fastq.gz \
+        /opt2/.tests/WT_S4_001.fastq.gz \
+        /opt2/.tests/WT_S5.fq.gz \
+        --lineage-name acidobacteria_odb10 --coverage 80 --genome-size 23.5m \
+        --output /opt2/output --mode local --dry-run
+    - name: Dry Run with BAM files
+      run: |
+        docker run -v $PWD:/opt2 snakemake/snakemake:v5.24.2 \
+        /opt2/assembly-seek run --input \
+        /opt2/.tests/WT_S6.bam \
+        /opt2/.tests/WT_S7.sorted.bam \
         --lineage-name acidobacteria_odb10 --coverage 80 --genome-size 23.5m \
         --output /opt2/output --mode local --dry-run
     - name: Lint Workflow
