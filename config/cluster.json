@@ -1,78 +1,83 @@
 {
-      "__default__": {
-              "mem": "50g",
-              "time": "24:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500"
-      },
-      "To_Fasta": {
-              "mem": "12g",
-              "time": "24:00:00",
-              "partition": "norm",
-              "threads": "8",
-      },
-      "wtdbg2_assembly": {
-              "mem": "50g",
-              "time": "24:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "flye_assembly": {
-              "mem": "500g",
-              "time": "2-00:00:00",
-              "partition": "largemem",
-              "threads": "100",
-              "gres": "lscratch:500",
-      },
-      "raven_assembly": {
-              "mem": "150g",
-              "time": "2-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "canu_assembly": {
-              "mem": "100g",
-              "time": "10-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "minipolish_assembly": {
-              "mem": "250g",
-              "time": "10-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "minimap2_overlaps": {
-              "mem": "150g",
-              "time": "4-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "stats_quast": {
-              "mem": "100g",
-              "time": "5-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-      },
-      "stats_busco": {
-              "mem": "50g",
-              "time": "5-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      },
-      "hifiasm": {
-              "mem": "150g",
-              "time": "2-00:00:00",
-              "partition": "norm",
-              "threads": "32",
-              "gres": "lscratch:500",
-      }
+        "__default__": {
+            "mem": "50g",
+            "time": "24:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "fastq2fasta": {
+            "mem": "12g",
+            "time": "24:00:00",
+            "partition": "norm",
+            "threads": "8"
+        },
+        "bam2fastq": {
+            "mem": "12g",
+            "time": "24:00:00",
+            "partition": "norm",
+            "threads": "8"
+        },
+        "wtdbg2_assembly": {
+            "mem": "50g",
+            "time": "24:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "flye_assembly": {
+            "mem": "500g",
+            "time": "2-00:00:00",
+            "partition": "largemem",
+            "threads": "100",
+            "gres": "lscratch:500"
+        },
+        "raven_assembly": {
+            "mem": "150g",
+            "time": "2-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "canu_assembly": {
+            "mem": "100g",
+            "time": "10-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "minipolish_assembly": {
+            "mem": "250g",
+            "time": "10-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "minimap2_overlaps": {
+            "mem": "150g",
+            "time": "4-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "stats_quast": {
+            "mem": "100g",
+            "time": "5-00:00:00",
+            "partition": "norm",
+            "threads": "32"
+        },
+        "stats_busco": {
+            "mem": "50g",
+            "time": "5-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        },
+        "hifiasm": {
+            "mem": "150g",
+            "time": "2-00:00:00",
+            "partition": "norm",
+            "threads": "32",
+            "gres": "lscratch:500"
+        }
 }
-
