@@ -255,9 +255,9 @@ def parsed_arguments(name, description):
         Optional arguments are shown in square brackets above.
 
         {3}{4}Description:{5}
-          To run the ...long pipeline name with your data raw data, please
-        provide a space seperated list of FastQ (globbing is supported) and an output 
-        directory to store results.
+          To run the de novo long-read PacBio genome assembly pipeline with your raw 
+        data, please provide a space seperated list of FastQ/BAM files (globbing supported),
+        and an output directory to store results.
 
         {3}{4}Required arguments:{5}
           --input INPUT [INPUT ...]
@@ -334,31 +334,31 @@ def parsed_arguments(name, description):
                                 will submit jobs to a  cluster  using sbatch. It is 
                                 recommended running the pipeline in this mode as it 
                                 will be significantly faster. 
-                                  Example: --mode slurm
+                                  • Example: --mode slurm
           --job-name JOB_NAME   
                                 Overrides the name of the pipeline's master job. When 
                                 submitting the pipeline to a jobscheduler, this option
                                 overrides the default name of the master job. This can 
                                 be useful for tracking the progress or status of a run, 
                                 default: pl:{2}.
-                                  Example: --job-name {2}_03-14.1592
+                                  • Example: --job-name {2}_03-14.1592
           --dry-run             
                                 Does not execute anything. Only displays what steps in
                                 the pipeline remain or will be run.
-                                  Example: --dry-run
+                                  • Example: --dry-run
           --silent              
                                 Silence standard output. This will reduces the amount 
                                 of information displayed to standard  output  when the 
                                 master job is submitted to the job scheduler. Only the 
                                 job id of the master job is returned.
-                                  Example: --silent
+                                  • Example: --silent
           --singularity-cache SINGULARITY_CACHE
                                 Overrides the $SINGULARITY_CACHEDIR variable. Images
                                 from remote registries are cached locally on the file
                                 system. By default, the singularity cache is set to:
                                 '/path/to/output/directory/.singularity/'. Please note
                                 that this cache cannot be shared across users.
-                                  Example: --singularity-cache /data/$USER
+                                  • Example: --singularity-cache /data/$USER
           --sif-cache SIF_CACHE
                                 Path where a local cache of SIFs are stored. This cache
                                 can be shared across users if permissions are properly
@@ -366,7 +366,7 @@ def parsed_arguments(name, description):
                                 image will be pulled from Dockerhub. {2} cache
                                 sub command can be used to create a local SIF cache. 
                                 Please see {2} cache for more information.
-                                   Example: --sif-cache /data/$USER/sifs/
+                                  • Example: --sif-cache /data/$USER/sifs/
           --tmp-dir TMP_DIR     
                                 Path on the file system for writing temporary output 
                                 files. By default, the temporary directory is set to 
@@ -379,16 +379,16 @@ def parsed_arguments(name, description):
                                 set to somewhere in /scratch. If you need to inject a 
                                 variable into this string that should NOT be expanded, 
                                 please quote this options value in single quotes. 
-                                  Example: --tmp-dir '/scratch/$USER/'
+                                  • Example: --tmp-dir '/scratch/$USER/'
           --threads THREADS     
                                 Max number of threads for local processes. It is
                                 recommended setting this vaule to the maximum number 
                                 of CPUs available on the host machine, default: 2.
-                                  Example: --threads: 16
+                                  • Example: --threads: 16
         
         {3}{4}Misc Options:{5}
           -h, --help            Show usage information, help message, and exit.
-                                  Example: --help
+                                  • Example: --help
         """.format(styled_name, description, name, c.bold, c.url, c.end, c.italic))
 
     # Display example usage in epilog
