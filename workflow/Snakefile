@@ -106,6 +106,7 @@ rule all:
         "multiqc_report.html"
     params:
         rname="denovoAsm"
+    threads: int(allocated("threads", "all", cluster)),
     shell:
         """
         module load multiqc
@@ -121,6 +122,7 @@ rule bam2fastq:
     params:
         rname    = "bam2fastq",
         samtools = "samtools/1.9",
+    threads: int(allocated("threads", "bam2fastq", cluster)),
     shell:
         """
         module load {params.samtools}
@@ -141,6 +143,7 @@ rule fastq2fasta:
     params:
         rname="fq2fa",
         seqkit="seqkit/2.2.0",
+    threads: int(allocated("threads", "fastq2fasta", cluster)),
     shell:
         """
         module load {params.seqkit}
@@ -161,7 +164,7 @@ rule QualityCheck:
     params:
         rname="fastQC",
         tmpdir=tmpdir,
-    threads: 32
+    threads: int(allocated("threads", "QualityCheck", cluster)),
     shell:
         """
         # Setups temporary directory for
@@ -201,9 +204,8 @@ rule raven_assembly:
         rname="raven_assembly",
         dir=directory(join(workpath, "raven_assembly")),
         gfa="{samples}.raven.gfa",
-    #conda: "envs/raven-assembler.yaml"
-    container: config['images']['raven']
-    threads: 32
+    container: config['images']['raven'],
+    threads: int(allocated("threads", "raven_assembly", cluster)),
     shell:
         """
         mkdir -p {params.dir}
@@ -280,7 +282,7 @@ rule flye_assembly:
         dir= join(workpath,"flye_assembly"),
         genome_size_flag= "--genome-size" if Genome_size != "" else "",
         asm_coverage_flag= "--asm-coverage" if Coverage != "" else ""
-    threads: 100
+    threads: int(allocated("threads", "flye_assembly", cluster)),
     shell:
         """
         module load {params.flye}
@@ -327,8 +329,7 @@ rule hifiasm:
         rname="hifiasm",
         dir=join(workpath,"hifiasm_assembly"),
         out="{samples}",
-        hifi="/data/NCBR/rawdata/NCBR-298/hifiasm",
-    threads: 32
+    threads: int(allocated("threads", "hifiasm", cluster)),
     shell:
         """
         mkdir -p {params.dir}
@@ -349,7 +350,8 @@ rule gather_assemblies:
         A1=join(workpath,"all-assemblies/{samples}.{assemblers}.fasta")
     params:
         rname = "gather_assemblies",
-        dir=join(workpath, "all-assemblies")
+        dir=join(workpath, "all-assemblies"),
+    threads: int(allocated("threads", "gather_assemblies", cluster)),
     shell:
         """
         mkdir -p {params.dir}
@@ -385,7 +387,7 @@ rule stats_quast:
         rname="stats_quast",
         batch='--cpus-per-task=72 --mem=100g --time=10:00:00',
         dir=directory("sample-quast")
-    threads: 32
+    threads: int(allocated("threads", "stats_quast", cluster)),
     shell:
         """
         module unload python
@@ -412,8 +414,8 @@ rule stats_busco:
         link = busco_link,
         s = "{samples}",
         Lineage_name = Lineage_name,
-        Lineage_path = Lineage_path
-    threads: 32
+        Lineage_path = Lineage_path,
+    threads: int(allocated("threads", "stats_busco", cluster)),
     shell:
         """
         module load busco
@@ -421,7 +423,8 @@ rule stats_busco:
         cd {params.dir}
         if [ ! -d "{params.Lineage_path}" ] && [ "{params.Lineage_name}" != "" ]; then
             echo "downloading busco lineage to current working dir"
-            wget {params.link}; tar -xf {params.link}
+            wget {params.link} -O busco_lineage.tar.gz; 
+            tar -vxzf busco_lineage.tar.gz; rm -f busco_lineage.tar.gz;
             busco --offline \\
                 -m genome \\
                 -l {params.dir}/{params.Lineage_name} \\
@@ -457,6 +460,7 @@ rule busco_summaries:
     params:
         rname="busco_summaries",
         dir=directory(join(workpath, "busco-summaries")),
+    threads: int(allocated("threads", "busco_summaries", cluster)),
     shell:
         """
         module load busco
