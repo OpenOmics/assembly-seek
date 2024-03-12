@@ -279,22 +279,25 @@ rule flye_assembly:
         rname="flye_assembly",
         flye="flye/2.9.1",
         id="{samples}",
-        dir= join(workpath,"flye_assembly"),
+        outdir= join(workpath,"flye_assembly"),
         genome_size_flag= "--genome-size" if Genome_size != "" else "",
         asm_coverage_flag= "--asm-coverage" if Coverage != "" else ""
     threads: int(allocated("threads", "flye_assembly", cluster)),
     shell:
         """
         module load {params.flye}
-        mkdir -p {params.rname}
+        if [ -d "{params.outdir}/{params.id}" ]; then
+            rm -rf "{params.outdir}/{params.id}";
+        fi
+        mkdir -p "{params.outdir}/{params.id}"
         cd /lscratch/$SLURM_JOBID
         mkdir -p {params.rname}/{params.id}
         flye \\
             --threads {threads} \\
             --pacbio-hifi {input} {params.genome_size_flag} {Genome_size} \\
             --out-dir {params.rname}/{params.id} {params.asm_coverage_flag} {Coverage}
-        mv /lscratch/$SLURM_JOBID/{params.rname}/{params.id} {params.dir}
-        cd {params.dir}/{params.id}
+        mv /lscratch/$SLURM_JOBID/{params.rname}/{params.id} {params.outdir}
+        cd {params.outdir}/{params.id}
         mv assembly.fasta {output}
         """
 
@@ -470,3 +473,7 @@ rule busco_summaries:
             -rt specific \\
             --working_directory {params.dir}
         """
+
+
+# Import rules 
+include: join("rules", "hooks.smk")
