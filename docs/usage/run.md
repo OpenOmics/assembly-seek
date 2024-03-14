@@ -10,17 +10,20 @@ Setting up the assembly-seek pipeline is fast and easy! In its most basic form, 
 ## 2. Synopsis
 ```text
 $ assembly-seek run [--help] \
-      [--mode {slurm,local}] [--job-name JOB_NAME] [--batch-id BATCH_ID] \
-      [--tmp-dir TMP_DIR] [--silent] [--sif-cache SIF_CACHE] \ 
-      [--singularity-cache SINGULARITY_CACHE] \
-      [--dry-run] [--threads THREADS] \
-      --input INPUT [INPUT ...] \
-      --output OUTPUT
+    [--dry-run] [--job-name JOB_NAME] [--mode {slurm,local}] \
+    [--sif-cache SIF_CACHE] [--singularity-cache SINGULARITY_CACHE] \
+    [--silent] [--threads THREADS] [--tmp-dir TMP_DIR] \
+    [--assemblers flye raven hifiasm] \
+    [--genome-size GENOME_SIZE] \
+    [--coverage COVERAGE] \
+    [--lineage-name LINEAGE_NAME] \
+    --input INPUT [INPUT ...] \
+    --output OUTPUT
 ```
 
 The synopsis for each command shows its arguments and their usage. Optional arguments are shown in square brackets.
 
-A user **must** provide a list of FastQ (globbing is supported) to analyze via `--input` argument and an output directory to store results via `--output` argument.
+A user **must** provide a list of HiFi CCS FastQ (globbing is supported) or BAM files to analyze via `--input` argument and an output directory to store results via `--output` argument.
 
 Use you can always use the `-h` option for information on a specific command. 
 
@@ -29,10 +32,10 @@ Use you can always use the `-h` option for information on a specific command.
 Each of the following arguments are required. Failure to provide a required argument will result in a non-zero exit-code.
 
   `--input INPUT [INPUT ...]`  
-> **Input FastQ or BAM file(s).**  
+> **Input HiFi CCS FastQ or BAM file(s).**  
 > *type: file(s)*  
 > 
-> One or more FastQ files can be provided. The pipeline does NOT support single-end data. From the command-line, each input file should seperated by a space. Globbing is supported! This makes selecting FastQ files easy. Input FastQ files should always be gzipp-ed.
+> One or more HiFi CCS FastQ or BAM files can be provided. From the command-line, each input file should seperated by a space. Globbing is supported! This makes selecting input files easy. Input FastQ files should always be gzipp-ed.
 > 
 > ***Example:*** `--input .tests/*.R?.fastq.gz`
 
@@ -47,9 +50,46 @@ Each of the following arguments are required. Failure to provide a required argu
 
 ### 2.2 Analysis options
 
-Each of the following arguments are optional, and do not need to be provided. 
+Each of the following arguments are optional, and do not need to be provided.  
 
-...add non-required analysis options 
+  `--assemblers ASSEMBLER [ASSEMBLER ...]`
+> **Genome assembler(s)**  
+> *type: string*  
+> *default: `flye raven hifiasm`*  
+>
+> A list of de-novo long read genome assemblers to use. Please choose from the following list of supported assemblers: ["flye", "raven", "hifiasm"].
+>
+> ***Example:*** `--assemblers flye raven`  
+
+---  
+  `--genome-size GENOME_SIZE`
+> **Estimated genome size.**  
+> *type: string*  
+> *default: none*  
+>
+> This is the estimated size of the organism's genome in Mb or Gb. This option is used with flye assembler only. Please note: this option MUST be used with the `--coverage` option (see below).
+>
+> ***Example:*** `--genome-size 23.5m`  
+
+---  
+  `--coverage COVERAGE`  
+> **Reduces coverage for initial assembly.**  
+> *type: int*  
+> *default: none*  
+>
+> Typically, assemblies of large genomes at high coverage require several hundreds of RAM. For high coverage datasets, you can reduce memory usage by using only a subset of longest reads for initial disjointig extension stage (which is usually the memory bottleneck). This option specifies the target coverage of the longest reads. It is worth noting that setting this option to 40 is usually enough to produce good disjointigs. Regardless of how this option is set, all reads will be used at the later pipeline stages (e.g. for repeat resolution). This option is used with the flye assembler only. Please note: this option MUST be used with the `--genome-size` option.
+>
+> ***Example:*** `--coverage 20`  
+
+---  
+  `--lineage-name LINEAGE_NAME`  
+> **Busco lineage name.**  
+> *type: string*  
+> *default: none*  
+>
+> This option can be provided to specify the name of the BUSCO lineage to be used. If provided, please provide a valid busco lineage name from the following [link](https://busco-archive.ezlab.org/data/lineages/). If the provided database for your lineage name does not exist locally, it will be downloaded into your output directory. By default, the pipeline will run using busco's auto-lineage option to find the closest lineage in its eukaryota, bacteria, and archaea databases.
+>
+> ***Example:*** `--lineage-name diptera_odb10`  
 
 ### 2.3 Orchestration options
 
@@ -159,7 +199,7 @@ module load singularity snakemake
 
 # Step 2A.) Dry-run the pipeline
 ./assembly-seek run --input .tests/*.R?.fastq.gz \
-                  --output /data/$USER/output \
+                  --output test_01 \
                   --mode slurm \
                   --dry-run
 
@@ -168,6 +208,6 @@ module load singularity snakemake
 # the cluster. It is recommended running 
 # the pipeline in this mode.
 ./assembly-seek run --input .tests/*.R?.fastq.gz \
-                  --output /data/$USER/output \
+                  --output test_01 \
                   --mode slurm
 ```
