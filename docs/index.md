@@ -17,7 +17,7 @@
   </a>
 
   <p>
-    This is the home of the pipeline, assembly-seek. Its long-term goals: to accurately construct genomes from PacBio/ONT long read sequencing data!
+    This is the home of the pipeline, assembly-seek. Its long-term goals: to accurately construct genomes from PacBio long read sequencing data!
   </p>
 
 </div>  
