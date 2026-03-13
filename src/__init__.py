@@ -10,7 +10,7 @@ sys.path.append(here)
 # Ground source of truth for version information
 try:
     # Import from root of project directory
-    version = open(os.path.join(here, 'VERSION'), 'r').readlines()[0].strip()
+    version = open(os.path.join(here, 'VERSION'), 'r').readlines()[0].strip().split(" ")[0]
 except IOError:
     # When namespace is __main__
-    version = open(os.path.join(here, '..', 'VERSION'), 'r').readlines()[0].strip()
+    version = open(os.path.join(here, '..', 'VERSION'), 'r').readlines()[0].strip().split(" ")[0]
