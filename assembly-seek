@@ -478,6 +478,7 @@ def parsed_arguments(name, description):
         type = str,
         required = False,
         default = ["flye", "hifiasm", "raven"],
+        nargs = '+',
         help = argparse.SUPPRESS
     )
 
