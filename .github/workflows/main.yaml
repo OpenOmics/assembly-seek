@@ -24,6 +24,7 @@ jobs:
         /opt2/.tests/WT_S3_1.fastq.gz \
         /opt2/.tests/WT_S4_001.fastq.gz \
         /opt2/.tests/WT_S5.fq.gz \
+        --assemblers flye raven hifiasm \
         --lineage-name acidobacteria_odb10 --coverage 80 --genome-size 23.5m \
         --output /opt2/output --mode local --dry-run
     - name: Dry Run with BAM files

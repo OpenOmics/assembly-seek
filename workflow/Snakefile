@@ -336,7 +336,7 @@ rule hifiasm:
     shell:
         """
         mkdir -p {params.dir}
-        module load hifiasm/0.19.8
+        module load hifiasm/0.25.0
         hifiasm \\
             -o {params.dir}/{params.out} \\
             -t {threads} \\
